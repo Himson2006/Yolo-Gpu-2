@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Search Videos</title>
+  <style>
+    /* simple styling */
+    .video-item { margin-bottom: 2rem; }
+    .video-player { display: none; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Search Videos</h1>
+  <form action="{{ url_for('main.search_videos') }}" method="get">
+    <label>
+      Class name:
+      <input type="text" name="class_name" value="{{ class_name or '' }}">
+    </label>
+    <label>
+      Min count:
+      <input type="number" name="min_count" value="{{ min_count or '' }}">
+    </label>
+    <button type="submit">Search</button>
+  </form>
+
+  {% if videos %}
+    <ul>
+      {% for video in videos %}
+        <li class="video-item">
+          <strong>{{ video.filename }}</strong>
+          <button type="button"
+                  onclick="showVideo('{{ video.id }}')">
+            ▶ Play
+          </button>
+
+          <video
+            id="video-{{ video.id }}"
+            class="video-player"
+            width="480"
+            controls
+            preload="none"
+          >
+            <source
+              src="{{ url_for('main.download_video', video_id=video.id) }}"
+              type="video/mp4"
+            >
+            Your browser does not support HTML5 video.
+          </video>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p><em>No videos found.</em></p>
+  {% endif %}
+
+  <script>
+    function showVideo(id) {
+      const vid = document.getElementById(`video-${id}`);
+      if (vid.style.display === 'none' || vid.style.display === '') {
+        vid.style.display = 'block';
+        vid.play();
+      } else {
+        vid.pause();
+        vid.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>

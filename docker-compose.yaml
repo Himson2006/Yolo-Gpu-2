@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_USER:     yolo_user
+      POSTGRES_PASSWORD: yolo_pass
+      POSTGRES_DB:       yolo_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    depends_on:
+      - db
+    restart: always
+    environment:
+      DATABASE_URL:      postgresql://yolo_user:yolo_pass@db:5432/yolo_db
+      FLASK_APP:         run.py
+      FLASK_ENV:         development
+    ports:
+      - "80:5000"
+    volumes:
+      - ./:/usr/src/app
+      - ./app/uploads:/usr/src/app/app/uploads
+    command: ["flask", "run", "--host=0.0.0.0", "--port=5000"]
+    working_dir: /usr/src/app
+
+volumes:
+  db_data:
