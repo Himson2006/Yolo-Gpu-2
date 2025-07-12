@@ -1,21 +1,46 @@
 from datetime import datetime
-from app import db
-from sqlalchemy.dialects.postgresql import JSONB
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 
-class Video(db.Model):
-    __tablename__ = "videos"
-    id          = db.Column(db.Integer, primary_key=True)
-    filename    = db.Column(db.String(256), nullable=False, unique=True)
-    detection   = db.relationship(
-        "Detection", backref="video", uselist=False, cascade="all, delete"
+# Initialize SQLAlchemy (usually done once in your app factory)
+# db = SQLAlchemy(app)  # if you create the app here
+# If you register models via application factory pattern, import db from your __init__.py
+from app import db
+
+class Event(db.Model):
+    __tablename__ = 'events'
+
+    event_id = db.Column(db.String(64), primary_key=True)
+    device_id = db.Column(db.String(64), nullable=False)
+    timestamp_start_utc = db.Column(db.DateTime(timezone=True), nullable=False)
+    timestamp_end_utc = db.Column(db.DateTime(timezone=True), nullable=False)
+    video_duration_seconds = db.Column(db.Float, nullable=False)
+    primary_species = db.Column(db.String(64), nullable=False)
+    status = db.Column(db.String(32), nullable=False)
+    remote_video_path = db.Column(db.String(256), nullable=True)
+    remote_json_path = db.Column(db.String(256), nullable=True)
+
+    # Relationship to detections
+    detections = db.relationship(
+        'Detection',
+        backref='event',
+        cascade='all, delete-orphan',
+        lazy='joined'
     )
 
 class Detection(db.Model):
-    __tablename__ = "detections"
-    id                  = db.Column(db.Integer, primary_key=True)
-    video_id            = db.Column(
-        db.Integer, db.ForeignKey("videos.id"), nullable=False, unique=True
+    __tablename__ = 'detections'
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(
+        db.String(64),
+        db.ForeignKey('events.event_id', ondelete='CASCADE'),
+        nullable=False,
+        unique = True
     )
-    detection_json      = db.Column(JSONB, nullable=False)
-    classes_detected    = db.Column(db.String(256), nullable=True)
-    max_count_per_frame = db.Column(JSONB, nullable=True)
+    detection_json = db.Column(JSONB, nullable=False)
+    classes_detected = db.Column(ARRAY(db.String(64)), nullable=False)
+    max_count_per_frame = db.Column(JSONB, nullable=False)
+
+    def __repr__(self):
+        return f"<Detection {self.id} for Event {self.event_id}>"
