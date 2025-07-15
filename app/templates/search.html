@@ -23,25 +23,25 @@
     <button type="submit">Search</button>
   </form>
 
-  {% if videos %}
+  {% if events %}
     <ul>
-      {% for video in videos %}
+      {% for event in events %}
         <li class="video-item">
-          <strong>{{ video.filename }}</strong>
+          <strong>{{ event.event_id }}</strong>
           <button type="button"
-                  onclick="showVideo('{{ video.id }}')">
+                  onclick="showVideo('{{ event.event_id }}')">
             ▶ Play
           </button>
 
           <video
-            id="video-{{ video.id }}"
+            id="video-{{ event.event_id }}"
             class="video-player"
             width="480"
             controls
             preload="none"
           >
             <source
-              src="{{ url_for('main.download_video', video_id=video.id) }}"
+              src="{{ url_for('main.download_video', event_id=event.event_id) }}"
               type="video/mp4"
             >
             Your browser does not support HTML5 video.
@@ -54,16 +54,17 @@
   {% endif %}
 
   <script>
-    function showVideo(id) {
-      const vid = document.getElementById(`video-${id}`);
-      if (vid.style.display === 'none' || vid.style.display === '') {
-        vid.style.display = 'block';
-        vid.play();
-      } else {
-        vid.pause();
-        vid.style.display = 'none';
-      }
+  function showVideo(id) {
+    const vid = document.getElementById(`video-${id}`);
+    if (!vid.style.display || vid.style.display === 'none') {
+      vid.style.display = 'block';
+      vid.load();      // <— force the browser to fetch from byte 0
+      vid.play();      // <— then start playback
+    } else {
+      vid.pause();
+      vid.style.display = 'none';
     }
-  </script>
+  }
+</script>
 </body>
 </html>
