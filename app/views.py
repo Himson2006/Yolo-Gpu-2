@@ -3,7 +3,7 @@ from flask import (
     Blueprint, request, current_app,
     render_template, redirect, url_for, send_from_directory, jsonify
 )
-from sqlalchemy import cast, Integer
+from sqlalchemy import cast, Integer, or_
 from app import db
 from app.models import Event, Detection
 
@@ -15,31 +15,44 @@ def index():
 
 @main_bp.route("/search", methods=["GET"])
 def search_videos():
-    class_name = request.args.get("class_name", type=str)
+    class_name_str = request.args.get("class_name", type=str)
     min_count = request.args.get("min_count", type=int)
     events = []
-    if class_name:
+    if class_name_str:
+        
+        class_names = [name.strip() for name in class_name_str.split(',')]
+        
         q = Event.query.join(Detection)
-        q = q.filter(Detection.classes_detected.any(class_name))
-        if min_count is not None:
+        class_filters = [Detection.classes_detected.any(name) for name in class_names]
+        q = q.filter(or_(*class_filters))
+        if min_count is not None and len(class_names) == 1:
             q = q.filter(
-                cast(Detection.max_count_per_frame[class_name].astext, Integer) >= min_count
+                cast(Detection.max_count_per_frame[class_names[0]].astext, Integer) >= min_count
             )
         events = q.all()
-    return render_template("search.html", events=events, class_name=class_name, min_count=min_count)
+    return render_template("search.html", events=events, class_name=class_name_str, min_count=min_count)
 
 @main_bp.route("/videos", methods=["GET"])
 def list_videos():
-    class_name = request.args.get("class_name", type=str)
+    class_name_str = request.args.get("class_name", type=str)
     min_count = request.args.get("min_count", type=int)
     q = Event.query.join(Detection)
-    if class_name:
-        q = q.filter(Detection.classes_detected.ilike(f"%{class_name}%"))
-        if min_count is not None:
-            q = q.filter(
-                cast(Detection.max_count_per_frame[class_name], Integer) >= min_count
-            )
-    results = [{"id":e.event_id} for e in q.all()]
+    events = []
+    if class_name_str:
+        class_names = [name.strip() for name in class_name_str.split(',') if name.strip()]
+        if class_names:
+            class_filters = [Detection.classes_detected.any(name) for name in class_names]
+            q = q.filter(or_(*class_filters))
+            
+            if min_count is not None and len(class_names) == 1:
+                q = q.filter(
+                    cast(Detection.max_count_per_frame[class_names[0]].astext, Integer) >= min_count
+                )
+            events = q.all()
+    else:
+        events = Event.query.all()
+        
+    results = [{"id":e.event_id} for e in events]
     return jsonify(results)
 
 @main_bp.route("/download/<string:event_id>", methods=["GET"])
