@@ -49,3 +49,9 @@ def download_video(event_id: str):
     return send_from_directory(
         current_app.config["WATCH_FOLDER"], f"{event.event_id}.mp4"
     )
+    
+@main_bp.route("/player/<string:event_id>.mp4")
+@main_bp.route("/player/<string:event_id>")
+def player_page(event_id):
+    # renders a tiny HTML page whose only job is to play the video
+    return render_template("player.html", event_id=event_id)

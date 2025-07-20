@@ -29,23 +29,18 @@
         <li class="video-item">
           <strong>{{ event.event_id }}</strong>
           <button type="button"
-                  onclick="showVideo('{{ event.event_id }}')">
+                  onclick="toggleFrame('{{ event.event_id }}')">
             ▶ Play
           </button>
 
-          <video
-            id="video-{{ event.event_id }}"
-            class="video-player"
-            width="480"
-            controls
-            preload="none"
-          >
-            <source
-              src="{{ url_for('main.download_video', event_id=event.event_id) }}"
-              type="video/mp4"
-            >
-            Your browser does not support HTML5 video.
-          </video>
+          <iframe
++            id="iframe-{{ event.event_id }}"
++            src="{{ url_for('main.player_page', event_id=event.event_id) }}"
++            width="480"
++            height="270"
++            style="display:none; border:0;"
++            allow="autoplay"
++          ></iframe>
         </li>
       {% endfor %}
     </ul>
@@ -53,18 +48,17 @@
     <p><em>No videos found.</em></p>
   {% endif %}
 
-  <script>
-  function showVideo(id) {
-    const vid = document.getElementById(`video-${id}`);
-    if (!vid.style.display || vid.style.display === 'none') {
-      vid.style.display = 'block';
-      vid.load();      // <— force the browser to fetch from byte 0
-      vid.play();      // <— then start playback
+<script>
+  function toggleFrame(id) {
+    console.log("toggleFrame called for", id);
+    const frame = document.getElementById(`iframe-${id}`);
+    if (frame.style.display === 'none' || !frame.style.display) {
+      frame.style.display = 'block';
     } else {
-      vid.pause();
-      vid.style.display = 'none';
+      frame.style.display = 'none';
     }
   }
 </script>
+
 </body>
 </html>
