@@ -22,9 +22,10 @@ def search_videos():
     end_date_str = request.args.get("end_date", type=str)
     device_id = request.args.get("device_id", type=str)
     time_of_day = request.args.get("time_of_day", type=str)
+    min_confidence = request.args.get("min_confidence", type=float)
     events = []
     search_performed = False
-    if class_name_str or min_count is not None or start_date_str or end_date_str or device_id or time_of_day:
+    if class_name_str or min_count is not None or start_date_str or end_date_str or device_id or time_of_day or min_confidence is not None:
         search_performed = True
         q = Event.query.join(Detection)
 
@@ -57,6 +58,11 @@ def search_videos():
         elif time_of_day == 'night':
             # Hour 18 (6:00pm) or greater, OR hour 5 (5:59am) or less
             q = q.filter(or_(extract('hour', Event.timestamp_start_utc) >= 18, extract('hour', Event.timestamp_start_utc) <= 5))
+        
+        if min_confidence is not None:
+            # This line queries the nested 'max_confidence' value within the JSONB field.
+            # .as_float() ensures a numeric comparison.
+            q = q.filter(Detection.detection_json['event_summary']['max_confidence'].as_float() >= min_confidence)
         
         events = q.all()
     return render_template("search.html", events=events, class_name=class_name_str,

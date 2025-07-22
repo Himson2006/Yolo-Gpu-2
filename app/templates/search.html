@@ -40,6 +40,10 @@
         <option value="night" {% if time_of_day == 'night' %}selected{% endif %}>Night (6pm - 6am)</option>
       </select>
     </label>
+    <label>
+      Min Confidence:
+      <input type="number" name="min_confidence" min="0.0" max="1.0" step="0.05" value="{{ min_confidence or '' }}">
+    </label>
     <button type="submit">Search</button>
   </form>
 
