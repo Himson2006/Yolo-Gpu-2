@@ -1,4 +1,5 @@
 import os, json
+from datetime import datetime, timedelta
 from flask import (
     Blueprint, request, current_app,
     render_template, redirect, url_for, send_from_directory, jsonify
@@ -17,20 +18,38 @@ def index():
 def search_videos():
     class_name_str = request.args.get("class_name", type=str)
     min_count = request.args.get("min_count", type=int)
+    start_date_str = request.args.get("start_date", type=str)
+    end_date_str = request.args.get("end_date", type=str)
     events = []
-    if class_name_str:
-        
-        class_names = [name.strip() for name in class_name_str.split(',')]
-        
+    search_performed = False
+    if class_name_str or min_count is not None or start_date_str or end_date_str:
+        search_performed = True
         q = Event.query.join(Detection)
-        class_filters = [Detection.classes_detected.any(name) for name in class_names]
-        q = q.filter(or_(*class_filters))
-        if min_count is not None and len(class_names) == 1:
-            q = q.filter(
-                cast(Detection.max_count_per_frame[class_names[0]].astext, Integer) >= min_count
-            )
+
+        # Apply class name and min count filters
+        if class_name_str:
+            class_names = [name.strip() for name in class_name_str.split(',')]
+            class_filters = [Detection.classes_detected.any(name) for name in class_names]
+            q = q.filter(or_(*class_filters))
+            if min_count is not None and len(class_names) == 1:
+                q = q.filter(
+                    cast(Detection.max_count_per_frame[class_names[0]].astext, Integer) >= min_count
+                )
+        
+        # Apply start date filter
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            q = q.filter(Event.timestamp_start_utc >= start_date)
+    
+        # Apply end date filter
+        if end_date_str:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+            q = q.filter(Event.timestamp_start_utc < end_date)
+        
         events = q.all()
-    return render_template("search.html", events=events, class_name=class_name_str, min_count=min_count)
+    return render_template("search.html", events=events, class_name=class_name_str,
+                           min_count=min_count, start_date=start_date_str,end_date=end_date_str,
+                           search_performed=search_performed)
 
 @main_bp.route("/videos", methods=["GET"])
 def list_videos():
