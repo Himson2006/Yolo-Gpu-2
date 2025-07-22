@@ -20,9 +20,10 @@ def search_videos():
     min_count = request.args.get("min_count", type=int)
     start_date_str = request.args.get("start_date", type=str)
     end_date_str = request.args.get("end_date", type=str)
+    device_id = request.args.get("device_id", type=str)
     events = []
     search_performed = False
-    if class_name_str or min_count is not None or start_date_str or end_date_str:
+    if class_name_str or min_count is not None or start_date_str or end_date_str or device_id:
         search_performed = True
         q = Event.query.join(Detection)
 
@@ -46,9 +47,13 @@ def search_videos():
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
             q = q.filter(Event.timestamp_start_utc < end_date)
         
+        if device_id:
+            q = q.filter(Event.device_id == device_id)
+        
         events = q.all()
     return render_template("search.html", events=events, class_name=class_name_str,
                            min_count=min_count, start_date=start_date_str,end_date=end_date_str,
+                           device_id=device_id,
                            search_performed=search_performed)
 
 @main_bp.route("/videos", methods=["GET"])
