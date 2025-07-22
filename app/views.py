@@ -67,7 +67,7 @@ def search_videos():
         events = q.all()
     return render_template("search.html", events=events, class_name=class_name_str,
                            min_count=min_count, start_date=start_date_str,end_date=end_date_str,
-                           device_id=device_id,time_of_day=time_of_day,
+                           device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,
                            search_performed=search_performed)
 
 @main_bp.route("/videos", methods=["GET"])
