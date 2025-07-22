@@ -11,6 +11,43 @@
 </head>
 <body>
   <h1>Search Videos</h1>
+
+  <div class="guide">
+  <h3>How to Use the Search</h3>
+  <p>
+    Enter criteria into one or more fields below and click "Search" to find matching videos. Leave all fields blank to see no results initially.
+  </p>
+  <ul>
+    <li>
+      <strong>Available Classes:</strong> The model can identify the following species of interest: 'Deer', 'Rabbit', 'Squirrel', and 'Vulture'.
+    </li>
+    <li>
+      <strong>Class name:</strong> Enter a single class or multiple classes separated by commas (e.g., <em>Deer, Squirrel</em>).
+    </li>
+    <li>
+      <strong>Match Type:</strong> Choose "Match Any (OR)" to find videos with any of the listed species, or "Match All (AND)" to find videos that must contain all listed species.
+    </li>
+    <li>
+      <strong>Min count:</strong> Find videos where a <strong>single species</strong> appears in at least this many frames. This filter only works when one class name is entered.
+    </li>
+    <li>
+      <strong>Date Range:</strong> Find videos recorded on or between the selected start and end dates.
+    </li>
+    <li>
+      <strong>Device ID:</strong> Filter results from a specific camera device ID (e.g., <em>GPU VM</em> ).
+    </li>
+    <li>
+      <strong>Time of Day:</strong> Filter for events that occurred during the day (6am - 6pm) or at night (6pm - 6am).
+    </li>
+    <li>
+      <strong>Min Confidence:</strong> Set a minimum model confidence score from 0.0 to 1.0.
+    </li>
+    <li>
+      <strong>Sort By:</strong> Order the results by date or video duration.
+    </li>
+  </ul>
+</div>
+
   <form action="{{ url_for('main.search_videos') }}" method="get">
     <label>
       Class name:
