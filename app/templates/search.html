@@ -32,6 +32,14 @@
       Device ID:
       <input type="text" name="device_id" value="{{ device_id or '' }}">
     </label>
+    <label>
+      Time of Day:
+      <select name="time_of_day">
+        <option value="" {% if not time_of_day %}selected{% endif %}>Any</option>
+        <option value="day" {% if time_of_day == 'day' %}selected{% endif %}>Day (6am - 6pm)</option>
+        <option value="night" {% if time_of_day == 'night' %}selected{% endif %}>Night (6pm - 6am)</option>
+      </select>
+    </label>
     <button type="submit">Search</button>
   </form>
 

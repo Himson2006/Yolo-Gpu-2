@@ -4,7 +4,7 @@ from flask import (
     Blueprint, request, current_app,
     render_template, redirect, url_for, send_from_directory, jsonify
 )
-from sqlalchemy import cast, Integer, or_
+from sqlalchemy import cast, Integer, or_, extract
 from app import db
 from app.models import Event, Detection
 
@@ -21,9 +21,10 @@ def search_videos():
     start_date_str = request.args.get("start_date", type=str)
     end_date_str = request.args.get("end_date", type=str)
     device_id = request.args.get("device_id", type=str)
+    time_of_day = request.args.get("time_of_day", type=str)
     events = []
     search_performed = False
-    if class_name_str or min_count is not None or start_date_str or end_date_str or device_id:
+    if class_name_str or min_count is not None or start_date_str or end_date_str or device_id or time_of_day:
         search_performed = True
         q = Event.query.join(Detection)
 
@@ -50,10 +51,17 @@ def search_videos():
         if device_id:
             q = q.filter(Event.device_id == device_id)
         
+        if time_of_day == 'day':
+            # Hour 6 (6:00am) up to, but not including, hour 18 (6:00pm)
+            q = q.filter(extract('hour', Event.timestamp_start_utc).between(6, 17))
+        elif time_of_day == 'night':
+            # Hour 18 (6:00pm) or greater, OR hour 5 (5:59am) or less
+            q = q.filter(or_(extract('hour', Event.timestamp_start_utc) >= 18, extract('hour', Event.timestamp_start_utc) <= 5))
+        
         events = q.all()
     return render_template("search.html", events=events, class_name=class_name_str,
                            min_count=min_count, start_date=start_date_str,end_date=end_date_str,
-                           device_id=device_id,
+                           device_id=device_id,time_of_day=time_of_day,
                            search_performed=search_performed)
 
 @main_bp.route("/videos", methods=["GET"])
