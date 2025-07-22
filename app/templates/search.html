@@ -44,6 +44,15 @@
       Min Confidence:
       <input type="number" name="min_confidence" min="0.0" max="1.0" step="0.05" value="{{ min_confidence or '' }}">
     </label>
+    <label>
+      Sort By:
+      <select name="sort_by">
+        <option value="recent" {% if sort_by == 'recent' %}selected{% endif %}>Most Recent</option>
+        <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>Oldest</option>
+        <option value="longest" {% if sort_by == 'longest' %}selected{% endif %}>Longest Duration</option>
+        <option value="shortest" {% if sort_by == 'shortest' %}selected{% endif %}>Shortest Duration</option>
+      </select>
+    </label>
     <button type="submit">Search</button>
   </form>
 

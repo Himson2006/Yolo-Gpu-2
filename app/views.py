@@ -23,6 +23,7 @@ def search_videos():
     device_id = request.args.get("device_id", type=str)
     time_of_day = request.args.get("time_of_day", type=str)
     min_confidence = request.args.get("min_confidence", type=float)
+    sort_by = request.args.get("sort_by", "recent", type=str)
     events = []
     search_performed = False
     if class_name_str or min_count is not None or start_date_str or end_date_str or device_id or time_of_day or min_confidence is not None:
@@ -64,10 +65,19 @@ def search_videos():
             # .as_float() ensures a numeric comparison.
             q = q.filter(Detection.detection_json['event_summary']['max_confidence'].as_float() >= min_confidence)
         
+        if sort_by == 'oldest':
+            q = q.order_by(Event.timestamp_start_utc.asc())
+        elif sort_by == 'longest':
+            q = q.order_by(Event.video_duration_seconds.desc())
+        elif sort_by == 'shortest':
+            q = q.order_by(Event.video_duration_seconds.asc())
+        else: # Default to 'recent'
+            q = q.order_by(Event.timestamp_start_utc.desc())
+        
         events = q.all()
     return render_template("search.html", events=events, class_name=class_name_str,
                            min_count=min_count, start_date=start_date_str,end_date=end_date_str,
-                           device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,
+                           device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
                            search_performed=search_performed)
 
 @main_bp.route("/videos", methods=["GET"])
