@@ -16,7 +16,13 @@
       Class name:
       <input type="text" name="class_name" value="{{ class_name or '' }}">
     </label>
-    <label>
+     <label>
+      <select name="match_type">
+        <option value="any" {% if match_type == 'any' %}selected{% endif %}>Match Any (OR)</option>
+        <option value="all" {% if match_type == 'all' %}selected{% endif %}>Match All (AND)</option>
+      </select>
+    </label>
+    <br> <label>
       Min count:
       <input type="number" name="min_count" value="{{ min_count or '' }}">
     </label>

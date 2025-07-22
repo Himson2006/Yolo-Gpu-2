@@ -17,6 +17,7 @@ def index():
 @main_bp.route("/search", methods=["GET"])
 def search_videos():
     class_name_str = request.args.get("class_name", type=str)
+    match_type = request.args.get("match_type", "any", type=str)
     min_count = request.args.get("min_count", type=int)
     start_date_str = request.args.get("start_date", type=str)
     end_date_str = request.args.get("end_date", type=str)
@@ -32,9 +33,16 @@ def search_videos():
 
         # Apply class name and min count filters
         if class_name_str:
-            class_names = [name.strip() for name in class_name_str.split(',')]
-            class_filters = [Detection.classes_detected.any(name) for name in class_names]
-            q = q.filter(or_(*class_filters))
+            class_names = [name.strip() for name in class_name_str.split(',') if name.strip()]
+            if match_type == 'all':
+                # AND logic: The database array must contain ALL listed species
+                q = q.filter(Detection.classes_detected.contains(class_names))
+            
+            else:
+                # OR logic (default): The database array must contain ANY of the listed species
+                class_filters = [Detection.classes_detected.any(name) for name in class_names]
+                q = q.filter(or_(*class_filters))
+            
             if min_count is not None and len(class_names) == 1:
                 q = q.filter(
                     cast(Detection.max_count_per_frame[class_names[0]].astext, Integer) >= min_count
@@ -78,6 +86,7 @@ def search_videos():
     return render_template("search.html", events=events, class_name=class_name_str,
                            min_count=min_count, start_date=start_date_str,end_date=end_date_str,
                            device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
+                           match_type=match_type,
                            search_performed=search_performed)
 
 @main_bp.route("/videos", methods=["GET"])
