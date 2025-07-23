@@ -4,7 +4,7 @@ from flask import (
     Blueprint, request, current_app,
     render_template, redirect, url_for, send_from_directory, jsonify
 )
-from sqlalchemy import cast, Integer, or_, extract
+from sqlalchemy import cast, Integer, or_, extract, and_
 from app import db
 from app.models import Event, Detection
 
@@ -30,23 +30,34 @@ def search_videos():
     if class_name_str or min_count is not None or start_date_str or end_date_str or device_id or time_of_day or min_confidence is not None:
         search_performed = True
         q = Event.query.join(Detection)
-
+        
+        class_names = []
         # Apply class name and min count filters
         if class_name_str:
             class_names = [name.strip() for name in class_name_str.split(',') if name.strip()]
-            if match_type == 'all':
-                # AND logic: The database array must contain ALL listed species
-                q = q.filter(Detection.classes_detected.contains(class_names))
-            
+        
+        if class_names:
+            if min_count is not None and match_type == 'any':
+                # Build a list of (species AND count) conditions
+                individual_conditions = []
+                for name in class_names:
+                    condition = and_(
+                        Detection.classes_detected.any(name),
+                        Detection.max_count_per_frame[name].as_float() >= min_count
+                    )
+                    individual_conditions.append(condition)
+                # Combine them with OR
+                q = q.filter(or_(*individual_conditions))
             else:
-                # OR logic (default): The database array must contain ANY of the listed species
-                class_filters = [Detection.classes_detected.any(name) for name in class_names]
-                q = q.filter(or_(*class_filters))
-            
-            if min_count is not None and len(class_names) == 1:
-                q = q.filter(
-                    cast(Detection.max_count_per_frame[class_names[0]].astext, Integer) >= min_count
-                )
+                # Original logic for other cases
+                if match_type == 'all':
+                    q = q.filter(Detection.classes_detected.contains(class_names))
+                else:
+                    class_filters = [Detection.classes_detected.any(name) for name in class_names]
+                    q = q.filter(or_(*class_filters))
+                
+                if min_count is not None and len(class_names) == 1:
+                    q = q.filter(Detection.max_count_per_frame[class_names[0]].as_float() >= min_count)
         
         # Apply start date filter
         if start_date_str:

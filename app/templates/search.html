@@ -1,146 +1,346 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Search Videos</title>
-  <style>
-    /* simple styling */
-    .video-item { margin-bottom: 2rem; }
-    .video-player { display: none; margin-top: 0.5rem; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioCoder Event Search</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- Base & Typography --- */
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --border-color: #dee2e6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 1rem;
+            line-height: 1.6;
+        }
+
+        /* --- Layout --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-color);
+            font-weight: 700;
+            margin-bottom: 2rem;
+        }
+
+        /* --- Guide Section --- */
+        .guide {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+        .guide h3 {
+            margin-top: 0;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .guide p { margin-bottom: 1rem; }
+        .guide ul {
+            list-style-type: '✓  ';
+            padding-left: 1.2rem;
+            margin: 0;
+        }
+        .guide li { padding-left: 0.5rem; margin-bottom: 0.5rem; }
+
+        /* --- Form Styling --- */
+        .search-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.75rem;
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            background-color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+        .form-group.full-width {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: center;
+        }
+        .search-button {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+            max-width: 300px;
+        }
+        .search-button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* --- Results Section --- */
+        .results-info {
+            text-align: center;
+            font-style: italic;
+            color: #6c757d;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+        }
+        .results-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.75rem;
+        }
+        .video-item {
+            background-color: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .video-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.08);
+        }
+        .video-info {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .video-info strong {
+            font-size: 1.1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .play-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .play-button:hover {
+            background-color: #218838;
+        }
+        .video-player-container {
+            display: none;
+            padding: 0;
+            background-color: #000;
+        }
+        .video-player-container iframe {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            border: 0;
+        }
+    </style>
 </head>
 <body>
-  <h1>Search Videos</h1>
 
-  <div class="guide">
-  <h3>How to Use the Search</h3>
-  <p>
-    Enter criteria into one or more fields below and click "Search" to find matching videos. Leave all fields blank to see no results initially.
-  </p>
-  <ul>
-    <li>
-      <strong>Available Classes:</strong> The model can identify the following species of interest:
-      <ul>
-        <li><b>Deer</b></li>
-        <li><b>Rabbit</b></li>
-        <li><b>Squirrel</b></li>
-        <li><b>Vulture</b></li>
-      </ul>
-    </li>
-    <li>
-      <strong>Class name:</strong> Enter a single class or multiple classes separated by commas (e.g., <em>Deer, Squirrel</em>).
-    </li>
-    <li>
-      <strong>Match Type:</strong> Choose "Match Any (OR)" to find videos with any of the listed species, or "Match All (AND)" to find videos that must contain all listed species.
-    </li>
-    <li>
-      <strong>Min count:</strong> Find videos where a <strong>single species</strong> appears in at least this many frames. This filter only works when one class name is entered.
-    </li>
-    <li>
-      <strong>Date Range:</strong> Find videos recorded on or between the selected start and end dates.
-    </li>
-    <li>
-      <strong>Device ID:</strong> Filter results from a specific camera device ID (e.g., <em>GPU VM</em> ).
-    </li>
-    <li>
-      <strong>Time of Day:</strong> Filter for events that occurred during the day (6am - 6pm) or at night (6pm - 6am).
-    </li>
-    <li>
-      <strong>Min Confidence:</strong> Set a minimum model confidence score from 0.0 to 1.0.
-    </li>
-    <li>
-      <strong>Sort By:</strong> Order the results by date or video duration.
-    </li>
-  </ul>
-</div>
+    <div class="container">
+        <h1>BioCoder Event Search</h1>
 
-  <form action="{{ url_for('main.search_videos') }}" method="get">
-    <label>
-      Class name:
-      <input type="text" name="class_name" value="{{ class_name or '' }}">
-    </label>
-     <label>
-      <select name="match_type">
-        <option value="any" {% if match_type == 'any' %}selected{% endif %}>Match Any (OR)</option>
-        <option value="all" {% if match_type == 'all' %}selected{% endif %}>Match All (AND)</option>
-      </select>
-    </label>
-    <br> <label>
-      Min count:
-      <input type="number" name="min_count" value="{{ min_count or '' }}">
-    </label>
-    <label>
-    Start Date:
-      <input type="date" name="start_date" value="{{ start_date or '' }}">
-    </label>
-    <label>
-      End Date:
-      <input type="date" name="end_date" value="{{ end_date or '' }}">
-    </label>
-    <label>
-      Device ID:
-      <input type="text" name="device_id" value="{{ device_id or '' }}">
-    </label>
-    <label>
-      Time of Day:
-      <select name="time_of_day">
-        <option value="" {% if not time_of_day %}selected{% endif %}>Any</option>
-        <option value="day" {% if time_of_day == 'day' %}selected{% endif %}>Day (6am - 6pm)</option>
-        <option value="night" {% if time_of_day == 'night' %}selected{% endif %}>Night (6pm - 6am)</option>
-      </select>
-    </label>
-    <label>
-      Min Confidence:
-      <input type="number" name="min_confidence" min="0.0" max="1.0" step="0.05" value="{{ min_confidence or '' }}">
-    </label>
-    <label>
-      Sort By:
-      <select name="sort_by">
-        <option value="recent" {% if sort_by == 'recent' %}selected{% endif %}>Most Recent</option>
-        <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>Oldest</option>
-        <option value="longest" {% if sort_by == 'longest' %}selected{% endif %}>Longest Duration</option>
-        <option value="shortest" {% if sort_by == 'shortest' %}selected{% endif %}>Shortest Duration</option>
-      </select>
-    </label>
-    <button type="submit">Search</button>
-  </form>
+        <div class="guide">
+            <h3>How to Use the Search</h3>
+            <p>
+                Enter criteria into one or more fields below and click "Search" to find matching videos. Leave all fields blank to see no results initially.
+            </p>
+            <ul>
+                <li><strong>Available Classes:</strong> 'Deer', 'Rabbit', 'Squirrel', 'Vulture'.</li>
+                <li><strong>Class name:</strong> Enter a single class or multiple classes separated by commas (e.g., <em>Deer, Squirrel</em>).</li>
+                <li><strong>Match Type:</strong> "Match Any" (OR) finds videos with any listed species. "Match All" (AND) requires all listed species to be present.</li>
+                <li><strong>Min count:</strong> Find videos where a single species appears at least this many times. This only works when one class name is entered.</li>
+                <li><strong>Date Range:</strong> Specify a start and end date to filter videos by when they were recorded.</li>
+                <li><strong>Device ID:</strong> Filter by the device that recorded the video</li>
+                <li><strong>Time of Day:</strong> Choose "Day" (6am - 6pm) or "Night" (6pm - 6am) to filter videos by the time they were recorded.</li>
+                <li><strong>Min Confidence:</strong> Filter videos by the minimum confidence level of</li>
+            </ul>
+        </div>
 
-  {% if events %}
-    <ul>
-      {% for event in events %}
-        <li class="video-item">
-          <strong>{{ event.event_id }}</strong>
-          <button type="button"
-                  onclick="toggleFrame('{{ event.event_id }}')">
-            ▶ Play
-          </button>
+        <form class="search-form" action="{{ url_for('main.search_videos') }}" method="get">
+            <div class="form-group">
+                <label for="class_name">Class name</label>
+                <input type="text" id="class_name" name="class_name" value="{{ class_name or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="match_type">Match Type</label>
+                <select id="match_type" name="match_type">
+                    <option value="any" {% if match_type == 'any' %}selected{% endif %}>Match Any (OR)</option>
+                    <option value="all" {% if match_type == 'all' %}selected{% endif %}>Match All (AND)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="min_count">Min Count</label>
+                <input type="number" id="min_count" name="min_count" value="{{ min_count or '' }}" placeholder="e.g., 2">
+            </div>
+            <div class="form-group">
+                <label for="start_date">Start Date</label>
+                <input type="date" id="start_date" name="start_date" value="{{ start_date or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="end_date">End Date</label>
+                <input type="date" id="end_date" name="end_date" value="{{ end_date or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="device_id">Device ID</label>
+                <input type="text" id="device_id" name="device_id" value="{{ device_id or '' }}" placeholder="e.g., Himson's Macbook Air">
+            </div>
+            <div class="form-group">
+                <label for="time_of_day">Time of Day</label>
+                <select id="time_of_day" name="time_of_day">
+                    <option value="" {% if not time_of_day %}selected{% endif %}>Any</option>
+                    <option value="day" {% if time_of_day == 'day' %}selected{% endif %}>Day (6am - 6pm)</option>
+                    <option value="night" {% if time_of_day == 'night' %}selected{% endif %}>Night (6pm - 6am)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="min_confidence">Min Confidence</label>
+                <input type="number" id="min_confidence" name="min_confidence" min="0.0" max="1.0" step="0.05" value="{{ min_confidence or '' }}" placeholder="0.0 to 1.0">
+            </div>
+            <div class="form-group">
+                <label for="sort_by">Sort By</label>
+                <select id="sort_by" name="sort_by">
+                    <option value="recent" {% if sort_by == 'recent' %}selected{% endif %}>Most Recent</option>
+                    <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>Oldest</option>
+                    <option value="longest" {% if sort_by == 'longest' %}selected{% endif %}>Longest Duration</option>
+                    <option value="shortest" {% if sort_by == 'shortest' %}selected{% endif %}>Shortest Duration</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <button type="submit" class="search-button">Search</button>
+            </div>
+        </form>
 
-          <iframe
-+            id="iframe-{{ event.event_id }}"
-+            src="{{ url_for('main.player_page', event_id=event.event_id) }}"
-+            width="480"
-+            height="270"
-+            style="display:none; border:0;"
-+            allow="autoplay"
-+          ></iframe>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p><em>No videos found.</em></p>
-  {% endif %}
+        {% if events %}
+            <ul class="results-list">
+                {% for event in events %}
+                <li class="video-item">
+                    <div class="video-info">
+                        <strong>{{ event.event_id }}</strong>
+                        <button type="button" class="play-button" onclick="toggleFrame('{{ event.event_id }}')">
+                            ▶ Play
+                        </button>
+                    </div>
+                    <div class="video-player-container" id="player-container-{{ event.event_id }}">
+                        <iframe
+                            id="iframe-{{ event.event_id }}"
+                            src="{{ url_for('main.player_page', event_id=event.event_id) }}"
+                            allow="autoplay; encrypted-media"
+                            allowfullscreen
+                        ></iframe>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        {% elif search_performed %}
+            <p class="results-info">No videos were found for your query.</p>
+        {% else %}
+            <p class="results-info">Please enter search criteria to begin.</p>
+        {% endif %}
 
-<script>
-  function toggleFrame(id) {
-    console.log("toggleFrame called for", id);
-    const frame = document.getElementById(`iframe-${id}`);
-    if (frame.style.display === 'none' || !frame.style.display) {
-      frame.style.display = 'block';
-    } else {
-      frame.style.display = 'none';
-    }
-  }
-</script>
+    </div>
+
+   <script>
+      function toggleFrame(id) {
+        const currentContainer = document.getElementById(`player-container-${id}`);
+        const currentButton = event.target;
+        const isOpening = currentContainer.style.display === 'none' || !currentContainer.style.display;
+
+        // First, stop all other playing videos
+        document.querySelectorAll('.video-player-container').forEach(container => {
+            // Find any container that is NOT the one we just clicked AND is currently visible
+            if (container.id !== currentContainer.id && container.style.display === 'block') {
+                
+                // **BUG FIX**: This line hides the container, making the play area collapse
+                container.style.display = 'none';
+                
+                const videoId = container.id.replace('player-container-', '');
+                const iframe = document.getElementById(`iframe-${videoId}`);
+                
+                // Stop the video by resetting the iframe's source
+                const originalSrc = iframe.src;
+                iframe.src = '';
+                iframe.src = originalSrc;
+
+                // Find the corresponding button and reset its text
+                const listItem = container.closest('.video-item');
+                const button = listItem.querySelector('.play-button');
+                if (button) {
+                    button.textContent = '▶ Play';
+                }
+            }
+        });
+
+        // Then, toggle the state of the clicked video
+        if (isOpening) {
+            currentContainer.style.display = 'block';
+            currentButton.textContent = '■ Stop';
+        } else {
+            currentContainer.style.display = 'none';
+            const iframe = document.getElementById(`iframe-${id}`);
+            const originalSrc = iframe.src;
+            iframe.src = '';
+            iframe.src = originalSrc;
+            currentButton.textContent = '▶ Play';
+        }
+      }
+    </script>
 
 </body>
 </html>
