@@ -4,7 +4,7 @@ from flask import (
     Blueprint, request, current_app,
     render_template, redirect, url_for, send_from_directory, jsonify
 )
-from sqlalchemy import cast, Integer, or_, extract, and_
+from sqlalchemy import cast, Integer, or_, extract, and_, func
 from app import db
 from app.models import Event, Detection
 
@@ -72,12 +72,14 @@ def search_videos():
         if device_id:
             q = q.filter(Event.device_id == device_id)
         
-        if time_of_day == 'day':
-            # Hour 6 (6:00am) up to, but not including, hour 18 (6:00pm)
-            q = q.filter(extract('hour', Event.timestamp_start_utc).between(6, 17))
-        elif time_of_day == 'night':
-            # Hour 18 (6:00pm) or greater, OR hour 5 (5:59am) or less
-            q = q.filter(or_(extract('hour', Event.timestamp_start_utc) >= 18, extract('hour', Event.timestamp_start_utc) <= 5))
+        if time_of_day:
+            central_time = Event.timestamp_start_utc.op('AT TIME ZONE')('America/Chicago')
+            if time_of_day == 'day':
+                # Hour 6 (6:00am) up to, but not including, hour 18 (6:00pm)
+                q = q.filter(extract('hour', central_time).between(6, 17))
+            elif time_of_day == 'night':
+                # Hour 18 (6:00pm) or greater, OR hour 5 (5:59am) or less
+                q = q.filter(or_(extract('hour', central_time) >= 18, extract('hour', central_time) <= 5))
         
         if min_confidence is not None:
             # This line queries the nested 'max_confidence' value within the JSONB field.
