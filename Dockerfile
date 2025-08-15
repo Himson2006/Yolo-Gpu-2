@@ -30,7 +30,4 @@ EXPOSE 5000
 
 # 8. Entrypoint: run the watcher in background, then launch Gunicorn
 #    (all runtime env vars—DATABASE_URL, WATCH_FOLDER, etc.—come from docker-compose)
-CMD ["sh", "-c", "\
-    python watcher.py & \
-    gunicorn --bind 0.0.0.0:5000 run:app --workers 2 --threads 4 \
-"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "run:app", "--workers", "2", "--threads", "4"]

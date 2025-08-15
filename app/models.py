@@ -25,7 +25,8 @@ class Event(db.Model):
         'Detection',
         backref='event',
         cascade='all, delete-orphan',
-        lazy='joined'
+        lazy='joined',
+        uselist=False
     )
 
 class Detection(db.Model):

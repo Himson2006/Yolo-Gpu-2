@@ -31,33 +31,43 @@ def search_videos():
         search_performed = True
         q = Event.query.join(Detection)
         
-        class_names = []
+        class_names_lower = []
+        class_names_original = []
         # Apply class name and min count filters
         if class_name_str:
-            class_names = [name.strip() for name in class_name_str.split(',') if name.strip()]
+            class_names_original = [name.strip() for name in class_name_str.split(',') if name.strip()]
+            class_names_lower = [name.lower() for name in class_names_original]
         
-        if class_names:
-            if min_count is not None and match_type == 'any':
-                # Build a list of (species AND count) conditions
-                individual_conditions = []
-                for name in class_names:
-                    condition = and_(
-                        Detection.classes_detected.any(name),
-                        Detection.max_count_per_frame[name].as_float() >= min_count
-                    )
-                    individual_conditions.append(condition)
-                # Combine them with OR
-                q = q.filter(or_(*individual_conditions))
-            else:
-                # Original logic for other cases
-                if match_type == 'all':
-                    q = q.filter(Detection.classes_detected.contains(class_names))
-                else:
-                    class_filters = [Detection.classes_detected.any(name) for name in class_names]
-                    q = q.filter(or_(*class_filters))
-                
-                if min_count is not None and len(class_names) == 1:
-                    q = q.filter(Detection.max_count_per_frame[class_names[0]].as_float() >= min_count)
+        if class_names_lower:
+            # Create a subquery that finds event_ids matching the criteria
+            subq = db.session.query(Detection.event_id).distinct()
+
+            # Create a LATERAL JOIN against the unnested array.
+            # We use .label('class_name') to give the unnested column a reliable name.
+            unnested_func = func.unnest(Detection.classes_detected)
+            class_alias = unnested_func.label("class_name")
+            lateral_join = db.select(class_alias).select_from(unnested_func).lateral()
+            
+            # Build the case-insensitive filter conditions using the labeled column.
+            conditions = [func.lower(lateral_join.c.class_name).ilike(name) for name in class_names_lower]
+            
+            # Apply the join and the filter conditions
+            subq = subq.join(lateral_join, db.true()).filter(or_(*conditions))
+
+            if match_type == 'all':
+                # For 'all', group by event_id and ensure the count of matched classes is correct
+                subq = subq.group_by(Detection.event_id).having(func.count() == len(class_names_lower))
+
+            # Finally, filter the main query by the event_ids found in the subquery
+            q = q.filter(Event.event_id.in_(subq))
+
+        if min_count is not None and class_names_original:
+            first_class_original_case = class_names_original[0]
+            try:
+                q = q.filter(Detection.max_count_per_frame[first_class_original_case].as_float() >= min_count)
+            except Exception:
+                # Silently ignore if the key is invalid
+                pass
         
         # Apply start date filter
         if start_date_str:
@@ -101,29 +111,6 @@ def search_videos():
                            device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
                            match_type=match_type,
                            search_performed=search_performed)
-
-@main_bp.route("/videos", methods=["GET"])
-def list_videos():
-    class_name_str = request.args.get("class_name", type=str)
-    min_count = request.args.get("min_count", type=int)
-    q = Event.query.join(Detection)
-    events = []
-    if class_name_str:
-        class_names = [name.strip() for name in class_name_str.split(',') if name.strip()]
-        if class_names:
-            class_filters = [Detection.classes_detected.any(name) for name in class_names]
-            q = q.filter(or_(*class_filters))
-            
-            if min_count is not None and len(class_names) == 1:
-                q = q.filter(
-                    cast(Detection.max_count_per_frame[class_names[0]].astext, Integer) >= min_count
-                )
-            events = q.all()
-    else:
-        events = Event.query.all()
-        
-    results = [{"id":e.event_id} for e in events]
-    return jsonify(results)
 
 @main_bp.route("/download/<string:event_id>", methods=["GET"])
 @main_bp.route("/download/<string:event_id>.mp4", methods=["GET"])

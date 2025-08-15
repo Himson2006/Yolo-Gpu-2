@@ -7,3 +7,4 @@ opencv-python
 gunicorn
 python-dotenv
 watchdog
+paramiko
