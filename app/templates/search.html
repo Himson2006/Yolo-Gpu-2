@@ -273,18 +273,14 @@
                 <li class="video-item">
                     <div class="video-info">
                         <strong>{{ event.event_id }}</strong>
-                        <button type="button" class="play-button" onclick="toggleFrame('{{ event.event_id }}')">
+                        <button type="button" class="play-button"
+                                onclick="toggleFrame(event, '{{ event.event_id }}')"
+                                data-player-url="{{ url_for('main.player_page', event_id=event.event_id) }}">
                             ▶ Play
                         </button>
                     </div>
                     <div class="video-player-container" id="player-container-{{ event.event_id }}">
-                        <iframe
-                            id="iframe-{{ event.event_id }}"
-                            src="{{ url_for('main.player_page', event_id=event.event_id) }}"
-                            allow="autoplay; encrypted-media"
-                            allowfullscreen
-                        ></iframe>
-                    </div>
+                        </div>
                 </li>
                 {% endfor %}
             </ul>
@@ -297,49 +293,51 @@
     </div>
 
    <script>
-      function toggleFrame(id) {
-        const currentContainer = document.getElementById(`player-container-${id}`);
-        const currentButton = event.target;
-        const isOpening = currentContainer.style.display === 'none' || !currentContainer.style.display;
+        function toggleFrame(event, id) {
+            const currentContainer = document.getElementById(`player-container-${id}`);
+            const currentButton = event.target;
+            const isOpening = currentContainer.style.display === 'none' || !currentContainer.style.display;
 
-        // First, stop all other playing videos
-        document.querySelectorAll('.video-player-container').forEach(container => {
-            // Find any container that is NOT the one we just clicked AND is currently visible
-            if (container.id !== currentContainer.id && container.style.display === 'block') {
-                
-                // **BUG FIX**: This line hides the container, making the play area collapse
-                container.style.display = 'none';
-                
-                const videoId = container.id.replace('player-container-', '');
-                const iframe = document.getElementById(`iframe-${videoId}`);
-                
-                // Stop the video by resetting the iframe's source
-                const originalSrc = iframe.src;
-                iframe.src = '';
-                iframe.src = originalSrc;
+            // 1. Stop all other playing videos by destroying their iframes
+            document.querySelectorAll('.video-player-container').forEach(container => {
+                if (container.id !== currentContainer.id && container.style.display === 'block') {
+                    container.style.display = 'none';
+                    container.innerHTML = ''; // Destroy the iframe
 
-                // Find the corresponding button and reset its text
-                const listItem = container.closest('.video-item');
-                const button = listItem.querySelector('.play-button');
-                if (button) {
-                    button.textContent = '▶ Play';
+                    const listItem = container.closest('.video-item');
+                    if (listItem) {
+                        const button = listItem.querySelector('.play-button');
+                        if (button) {
+                            button.textContent = '▶ Play';
+                        }
+                    }
                 }
-            }
-        });
+            });
 
-        // Then, toggle the state of the clicked video
-        if (isOpening) {
-            currentContainer.style.display = 'block';
-            currentButton.textContent = '■ Stop';
-        } else {
-            currentContainer.style.display = 'none';
-            const iframe = document.getElementById(`iframe-${id}`);
-            const originalSrc = iframe.src;
-            iframe.src = '';
-            iframe.src = originalSrc;
-            currentButton.textContent = '▶ Play';
+            // 2. Toggle the state of the clicked video
+            if (isOpening) {
+                // Create a brand new iframe
+                const playerUrl = currentButton.dataset.playerUrl;
+                const iframe = document.createElement('iframe');
+                iframe.setAttribute('id', `iframe-${id}`);
+                iframe.setAttribute('src', playerUrl);
+                iframe.setAttribute('allow', 'autoplay; encrypted-media');
+                iframe.setAttribute('allowfullscreen', '');
+
+                // Add the new iframe to the container
+                currentContainer.innerHTML = ''; 
+                currentContainer.appendChild(iframe);
+
+                // Show the container and update the button
+                currentContainer.style.display = 'block';
+                currentButton.textContent = '■ Stop';
+            } else {
+                // Hide the container and destroy its content
+                currentContainer.style.display = 'none';
+                currentContainer.innerHTML = '';
+                currentButton.textContent = '▶ Play';
+            }
         }
-      }
     </script>
 
 </body>
