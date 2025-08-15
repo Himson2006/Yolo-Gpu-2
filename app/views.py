@@ -1,12 +1,14 @@
 import os, json
+import io
 from datetime import datetime, timedelta
 from flask import (
     Blueprint, request, current_app,
-    render_template, redirect, url_for, send_from_directory, jsonify
+    render_template, redirect, url_for, send_from_directory, jsonify, send_file
 )
 from sqlalchemy import cast, Integer, or_, extract, and_, func
 from app import db
 from app.models import Event, Detection
+import zipfile
 
 main_bp = Blueprint("main", __name__)
 
@@ -125,3 +127,36 @@ def download_video(event_id: str):
 def player_page(event_id):
     # renders a tiny HTML page whose only job is to play the video
     return render_template("player.html", event_id=event_id)
+
+@main_bp.route("/download/batch")
+def download_batch():
+    """
+    Takes a comma-separated list of event_ids, creates a zip file
+    of the corresponding videos, and sends it to the user.
+    """
+    event_ids_str = request.args.get("ids")
+    if not event_ids_str:
+        return "No event IDs provided", 400
+
+    event_ids = event_ids_str.split(',')
+
+    # Use an in-memory file for the zip archive
+    memory_file = io.BytesIO()
+
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for event_id in event_ids:
+            event = Event.query.get(event_id)
+            if event:
+                video_path = os.path.join(current_app.config["WATCH_FOLDER"], f"{event.event_id}.mp4")
+                if os.path.exists(video_path):
+                    # Add the file to the zip, using the event_id as the filename
+                    zf.write(video_path, arcname=f"{event.event_id}.mp4")
+
+    memory_file.seek(0)
+
+    return send_file(
+        memory_file,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name='videos.zip'
+    )

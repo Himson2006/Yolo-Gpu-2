@@ -189,6 +189,11 @@
             aspect-ratio: 16 / 9;
             border: 0;
         }
+        .download-all-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.75rem;
+        }
     </style>
 </head>
 <body>
@@ -268,9 +273,12 @@
         </form>
 
         {% if events %}
+            <div class="download-all-container">
+                <button type="button" class="search-button" onclick="downloadAll()">Download All Results</button>
+            </div>
             <ul class="results-list">
                 {% for event in events %}
-                <li class="video-item">
+                <li class="video-item" data-id="{{ event.event_id }}">
                     <div class="video-info">
                         <strong>{{ event.event_id }}</strong>
                         <button type="button" class="play-button"
@@ -293,6 +301,21 @@
     </div>
 
    <script>
+        function downloadAll() {
+            const videoItems = document.querySelectorAll('.video-item');
+            if (videoItems.length === 0) {
+                alert("No videos to download.");
+                return;
+            }
+
+            const eventIds = Array.from(videoItems).map(item => item.dataset.id);
+            const downloadUrl = `/download/batch?ids=${eventIds.join(',')}`;
+
+            // Trigger the download by navigating to the new URL
+            window.location.href = downloadUrl;
+            }
+
+
         function toggleFrame(event, id) {
             const currentContainer = document.getElementById(`player-container-${id}`);
             const currentButton = event.target;
