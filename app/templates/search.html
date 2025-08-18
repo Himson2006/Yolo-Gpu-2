@@ -230,6 +230,17 @@
             padding-left: 1.2rem;
             margin-top: 0.25rem;
         }
+        .toggle-button {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -243,7 +254,13 @@
                 Enter criteria into one or more fields below and click "Search" to find matching videos. Leave all fields blank to see no results initially.
             </p>
             <ul>
-                <li><strong>Available Classes:</strong> 'Deer', 'Rabbit', 'Squirrel', 'Vulture'.</li>
+                <li>
+                    <strong>Available Classes:</strong>
+                    <button type="button" class="toggle-button" onclick="toggleClasses(this)">View</button>
+                    <div id="classList" style="display: none; margin-top: 0.5rem; padding-left: 1rem; font-style: italic;">
+                        'Common_Raccoon', 'Mule_Deer', 'White-Tailed_Deer, 'Nine-Banded_Armadillo', 'Rabbit_Hare', 'Vulture'
+                    </div>
+                </li>
                 <li><strong>Class name:</strong> Enter a single class or multiple classes separated by commas (e.g., <em>Deer, Squirrel</em>).</li>
                 <li><strong>Match Type:</strong> "Match Any" (OR) finds videos with any listed species. "Match All" (AND) requires all listed species to be present.</li>
                 <li><strong>Min Video Duration:</strong> Find videos with a duration greater than or equal to the specified seconds.</li>
@@ -349,6 +366,19 @@
     </div>
 
    <script>
+        function toggleClasses(button) {
+            const classListDiv = document.getElementById('classList');
+            const isHidden = classListDiv.style.display === 'none' || !classListDiv.style.display;
+
+            if (isHidden) {
+                classListDiv.style.display = 'block';
+                button.textContent = 'Hide';
+            } else {
+                classListDiv.style.display = 'none';
+                button.textContent = 'View';
+            }
+        }
+
         function toggleDescription(event, id) {
             const descriptionContainer = document.getElementById(`description-${id}`);
             const button = event.target;
