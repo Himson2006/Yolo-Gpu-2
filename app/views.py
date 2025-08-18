@@ -58,7 +58,7 @@ def search_videos():
 
             if match_type == 'all':
                 # For 'all', group by event_id and ensure the count of matched classes is correct
-                subq = subq.group_by(Detection.event_id).having(func.count() == len(class_names_lower))
+                subq = subq.group_by(Detection.event_id).having(func.count(func.distinct(func.lower(lateral_join.c.class_name))) == len(class_names_lower))
 
             # Finally, filter the main query by the event_ids found in the subquery
             q = q.filter(Event.event_id.in_(subq))

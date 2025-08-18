@@ -194,6 +194,42 @@
             justify-content: center;
             margin-bottom: 1.75rem;
         }
+        .details-button {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .details-button:hover {
+            background-color: #5a6268;
+        }
+
+        .video-description {
+            display: none; /* Hidden by default */
+            padding: 1rem 1.5rem;
+            background-color: var(--bg-color);
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        .video-description ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .video-description li {
+            padding: 0.25rem 0;
+        }
+        .video-description li ul {
+            padding-left: 1.2rem;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -281,14 +317,26 @@
                 <li class="video-item" data-id="{{ event.event_id }}">
                     <div class="video-info">
                         <strong>{{ event.event_id }}</strong>
-                        <button type="button" class="play-button"
-                                onclick="toggleFrame(event, '{{ event.event_id }}')"
-                                data-player-url="{{ url_for('main.player_page', event_id=event.event_id) }}">
-                            ▶ Play
-                        </button>
+                        <div> <button type="button" class="details-button" onclick="toggleDescription(event, '{{ event.event_id }}')">
+                                Details
+                            </button>
+                            <button type="button" class="play-button"
+                                    onclick="toggleFrame(event, '{{ event.event_id }}')"
+                                    data-player-url="{{ url_for('main.player_page', event_id=event.event_id) }}">
+                                ▶ Play
+                            </button>
+                        </div>
                     </div>
                     <div class="video-player-container" id="player-container-{{ event.event_id }}">
                         </div>
+                    <div class="video-description" id="description-{{ event.event_id }}">
+                        <ul>
+                            <li><strong>Device:</strong> {{ event.device_id }}</li>
+                            <li><strong>Recorded:</strong> {{ event.timestamp_start_utc.strftime('%Y-%m-%d %H:%M:%S') }} UTC</li>
+                            <li><strong>Duration:</strong> {{ "%.2f"|format(event.video_duration_seconds) }} seconds</li>
+                            <li><strong>Detected Classes:</strong> {{ event.detections.classes_detected|join(', ') }}</li>
+                        </ul>
+                    </div>
                 </li>
                 {% endfor %}
             </ul>
@@ -301,6 +349,21 @@
     </div>
 
    <script>
+        function toggleDescription(event, id) {
+            const descriptionContainer = document.getElementById(`description-${id}`);
+            const button = event.target;
+
+            const isOpening = descriptionContainer.style.display === 'none' || !descriptionContainer.style.display;
+
+            if (isOpening) {
+                descriptionContainer.style.display = 'block';
+                button.textContent = 'Hide';
+            } else {
+                descriptionContainer.style.display = 'none';
+                button.textContent = 'Details';
+            }
+        }
+
         function downloadAll() {
             const videoItems = document.querySelectorAll('.video-item');
             if (videoItems.length === 0) {
