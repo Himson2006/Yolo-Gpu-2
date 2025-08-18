@@ -246,7 +246,7 @@
                 <li><strong>Available Classes:</strong> 'Deer', 'Rabbit', 'Squirrel', 'Vulture'.</li>
                 <li><strong>Class name:</strong> Enter a single class or multiple classes separated by commas (e.g., <em>Deer, Squirrel</em>).</li>
                 <li><strong>Match Type:</strong> "Match Any" (OR) finds videos with any listed species. "Match All" (AND) requires all listed species to be present.</li>
-                <li><strong>Min count:</strong> Find videos where a single species appears at least this many times. This only works when one class name is entered.</li>
+                <li><strong>Min Video Duration:</strong> Find videos with a duration greater than or equal to the specified seconds.</li>
                 <li><strong>Date Range:</strong> Specify a start and end date to filter videos by when they were recorded.</li>
                 <li><strong>Device ID:</strong> Filter by the device that recorded the video</li>
                 <li><strong>Time of Day:</strong> Choose "Day" (6am - 6pm) or "Night" (6pm - 6am) to filter videos by the time they were recorded.</li>
@@ -267,8 +267,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label for="min_count">Min Count</label>
-                <input type="number" id="min_count" name="min_count" value="{{ min_count or '' }}" placeholder="e.g., 2">
+                <label for="min_duration">Min Video Duration (s)</label>
+                <input type="number" id="min_duration" name="min_duration" value="{{ min_duration or '' }}" placeholder="e.g., 5" step="0.1">
             </div>
             <div class="form-group">
                 <label for="start_date">Start Date</label>

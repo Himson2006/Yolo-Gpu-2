@@ -20,7 +20,7 @@ def index():
 def search_videos():
     class_name_str = request.args.get("class_name", type=str)
     match_type = request.args.get("match_type", "any", type=str)
-    min_count = request.args.get("min_count", type=int)
+    min_duration = request.args.get("min_duration", type=float)
     start_date_str = request.args.get("start_date", type=str)
     end_date_str = request.args.get("end_date", type=str)
     device_id = request.args.get("device_id", type=str)
@@ -29,8 +29,7 @@ def search_videos():
     sort_by = request.args.get("sort_by", "recent", type=str)
     events = []
     search_performed = False
-    if class_name_str or min_count is not None or start_date_str or end_date_str or device_id or time_of_day or min_confidence is not None:
-        search_performed = True
+    if class_name_str or min_duration is not None or start_date_str or end_date_str or device_id or time_of_day or min_confidence is not None:
         q = Event.query.join(Detection)
         
         class_names_lower = []
@@ -63,13 +62,8 @@ def search_videos():
             # Finally, filter the main query by the event_ids found in the subquery
             q = q.filter(Event.event_id.in_(subq))
 
-        if min_count is not None and class_names_original:
-            first_class_original_case = class_names_original[0]
-            try:
-                q = q.filter(Detection.max_count_per_frame[first_class_original_case].as_float() >= min_count)
-            except Exception:
-                # Silently ignore if the key is invalid
-                pass
+        if min_duration is not None:
+            q = q.filter(Event.video_duration_seconds >= min_duration)
         
         # Apply start date filter
         if start_date_str:
@@ -109,7 +103,7 @@ def search_videos():
         
         events = q.all()
     return render_template("search.html", events=events, class_name=class_name_str,
-                           min_count=min_count, start_date=start_date_str,end_date=end_date_str,
+                           min_duration=min_duration, start_date=start_date_str,end_date=end_date_str,
                            device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
                            match_type=match_type,
                            search_performed=search_performed)
