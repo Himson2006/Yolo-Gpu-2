@@ -12,8 +12,8 @@ class Event(db.Model):
 
     event_id = db.Column(db.String(64), primary_key=True)
     device_id = db.Column(db.String(64), nullable=False)
-    timestamp_start_utc = db.Column(db.DateTime(timezone=True), nullable=False)
-    timestamp_end_utc = db.Column(db.DateTime(timezone=True), nullable=False)
+    timestamp_start_utc = db.Column(db.DateTime(timezone=False), nullable=False)
+    timestamp_end_utc = db.Column(db.DateTime(timezone=False), nullable=False)
     video_duration_seconds = db.Column(db.Float, nullable=False)
     primary_species = db.Column(db.String(64), nullable=False)
     status = db.Column(db.String(32), nullable=False)

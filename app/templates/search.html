@@ -349,7 +349,7 @@
                     <div class="video-description" id="description-{{ event.event_id }}">
                         <ul>
                             <li><strong>Device:</strong> {{ event.device_id }}</li>
-                            <li><strong>Recorded:</strong> {{ event.timestamp_start_utc.strftime('%Y-%m-%d %H:%M:%S') }} UTC</li>
+                            <li><strong>Recorded:</strong> {{ event.timestamp_start_utc.strftime('%Y-%m-%d %H:%M:%S') }}</li>
                             <li><strong>Duration:</strong> {{ "%.2f"|format(event.video_duration_seconds) }} seconds</li>
                             <li><strong>Detected Classes:</strong> {{ event.detections.classes_detected|join(', ') }}</li>
                         </ul>
