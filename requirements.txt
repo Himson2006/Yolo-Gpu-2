@@ -8,3 +8,4 @@ gunicorn
 python-dotenv
 watchdog
 paramiko
+authlib

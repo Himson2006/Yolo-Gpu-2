@@ -1,13 +1,17 @@
 import os
-from flask import Flask
+from flask import Flask, session, url_for, redirect
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
+from authlib.integrations.flask_client import OAuth
+from functools import wraps
 from sqlalchemy import create_engine, text
 from urllib.parse import urlparse
 import logging
 
+
 # Initialize SQLAlchemy
 db = SQLAlchemy()
+oauth = OAuth()
 
 def ensure_db(uri: str):
     """
@@ -30,6 +34,14 @@ def ensure_db(uri: str):
             logging.info(f"Database '{db_name}' already exists.")
     engine.dispose()
 
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
+
 
 def create_app():
     """
@@ -42,6 +54,8 @@ def create_app():
     """
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    app.secret_key = app.config['SECRET_KEY']
 
     # 1) Ensure the database itself exists
     try:
@@ -51,16 +65,48 @@ def create_app():
 
     # 2) Initialize SQLAlchemy
     db.init_app(app)
+    
+    # 3) Initialize Authlib
+    oauth.init_app(app)
+    auth0 = oauth.register(
+        'auth0',
+        client_id=app.config['AUTH0_CLIENT_ID'],
+        client_secret=app.config['AUTH0_CLIENT_SECRET'],
+        api_base_url=f"https://{app.config['AUTH0_DOMAIN']}",
+        server_metadata_url=f"https://{app.config['AUTH0_DOMAIN']}/.well-known/openid-configuration",
+        client_kwargs={'scope': 'openid profile email'},
+    )
 
-    # 3) Import models so SQLAlchemy knows about them
+    # 4) Import models so SQLAlchemy knows about them
     from app import models  # no circular import, after db is defined
 
-    # 4) Create tables for all models
+    # 5) Create tables for all models
     with app.app_context():
         db.create_all()
 
-    # 5) Register blueprints / routes
+    # 6) Register blueprints / routes
     from app.views import main_bp
     app.register_blueprint(main_bp)
+    
+    @app.route('/login')
+    def login():
+        return auth0.authorize_redirect(redirect_uri=url_for('callback', _external=True))
+
+    @app.route('/callback')
+    def callback():
+        auth0.authorize_access_token()
+        resp = auth0.get('userinfo')
+        userinfo = resp.json()
+        session['user'] = userinfo
+        return redirect('/search')
+
+    @app.route('/logout')
+    def logout():
+        session.clear()
+        return redirect(
+            f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
+            + f"client_id={app.config['AUTH0_CLIENT_ID']}&"
+            + f"returnTo={url_for('main.index', _external=True)}"
+        )
 
     return app

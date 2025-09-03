@@ -6,6 +6,11 @@ load_dotenv()  # reads .env in project root
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
+    
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    AUTH0_DOMAIN = os.environ.get("AUTH0_DOMAIN")
+    AUTH0_CLIENT_ID = os.environ.get("AUTH0_CLIENT_ID")
+    AUTH0_CLIENT_SECRET = os.environ.get("AUTH0_CLIENT_SECRET")
     # PostgreSQL URL from env or default (used in Docker Compose)
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL",

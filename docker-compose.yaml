@@ -20,6 +20,11 @@ services:
       DATABASE_URL:      postgresql://yolo_user:yolo_pass@db:5432/yolo_db
       FLASK_APP:         run.py
       FLASK_ENV:         development
+
+      SECRET_KEY:        -------
+      AUTH0_DOMAIN:      --------
+      AUTH0_CLIENT_ID:   --------
+      AUTH0_CLIENT_SECRET:  --------
     ports:
       - "80:5000"
     volumes:

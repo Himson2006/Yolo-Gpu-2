@@ -243,9 +243,48 @@
             margin-left: 0.5rem;
             vertical-align: middle;
         }
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 0;
+        }
+        .page-button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .page-button:hover {
+            background-color: var(--primary-hover);
+        }
+        .page-button.disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .page-info {
+            margin: 0 1.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
     </style>
 </head>
 <body>
+    <div style="background-color: #333; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: bold; font-size: 1.2em;">BioCoder Event Search</span>
+        <div>
+        {% if session.user %}
+            <span style="margin-right: 15px;">Welcome, {{ session.user['name'] }}</span>
+            <a href="/logout" style="color: #ff6b6b; text-decoration: none; font-weight: bold;">Logout</a>
+        {% else %}
+            <a href="/login" style="color: #61dafb; text-decoration: none; font-weight: bold;">Login for Admin Access</a>
+        {% endif %}
+        </div>
+    </div>
 
     <div class="container">
         <h1>BioCoder Event Search</h1>
@@ -328,9 +367,12 @@
         </form>
 
         {% if events %}
+            {# This block now correctly protects the single "Download All" button #}
+            {% if session.user and 'http://biocoder.edge.com/roles' in session.user and 'Admin' in session.user['http://biocoder.edge.com/roles'] %}
             <div class="download-all-container">
                 <button type="button" class="search-button" onclick="downloadAll()">Download All Results</button>
             </div>
+            {% endif %}
             <ul class="results-list">
                 {% for event in events %}
                 <li class="video-item" data-id="{{ event.event_id }}">
@@ -359,6 +401,31 @@
                 </li>
                 {% endfor %}
             </ul>
+            
+            {% if pagination and pagination.pages > 1 %}
+            <div class="pagination-controls">
+                {% if pagination.has_prev %}
+                    <a href="{{ url_for('main.search_videos', page=pagination.prev_num,**search_args) }}" class="page-button">
+                        &laquo; Previous
+                    </a>
+                {% else %}
+                    <span class="page-button disabled">&laquo; Previous</span>
+                {% endif %}
+
+                <span class="page-info">
+                    Page {{ pagination.page }} of {{ pagination.pages }}
+                </span>
+
+                {% if pagination.has_next %}
+                    <a href="{{ url_for('main.search_videos', page=pagination.next_num,**search_args) }}" class="page-button">
+                        Next &raquo;
+                    </a>
+                {% else %}
+                    <span class="page-button disabled">Next &raquo;</span>
+                {% endif %}
+            </div>
+            {% endif %}
+
         {% elif search_performed %}
             <p class="results-info">No videos were found for your query.</p>
         {% else %}
