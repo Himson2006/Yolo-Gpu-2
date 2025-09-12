@@ -9,7 +9,7 @@ from sqlalchemy import cast, Integer, or_, extract, and_, func
 from app import db
 from app.models import Event, Detection
 import zipfile
-from app import login_required
+from app import login_required, admin_required
 
 main_bp = Blueprint("main", __name__)
 
@@ -98,6 +98,33 @@ def search_videos():
                            device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
                            match_type=match_type, search_args=search_args,
                            search_performed=search_performed)
+    
+@main_bp.route("/delete/<string:event_id>", methods=["DELETE"])
+@admin_required
+def delete_video(event_id: str):
+    """Admin-only route to delete a video and its DB records."""
+    event = Event.query.get(event_id)
+    if not event:
+        return jsonify({"success": False, "error": "Event not found"}), 404
+
+    # 1. Delete the video file
+    try:
+        video_path = os.path.join(current_app.config["WATCH_FOLDER"], f"{event.event_id}.mp4")
+        if os.path.exists(video_path):
+            os.remove(video_path)
+    except OSError as e:
+        # Log the error but proceed to delete the DB record anyway
+        current_app.logger.error(f"Error deleting video file {video_path}: {e}")
+
+    # 2. Delete the database record (cascades to detections)
+    try:
+        db.session.delete(event)
+        db.session.commit()
+        return jsonify({"success": True, "message": f"Event {event_id} deleted."}), 200
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting event {event_id} from DB: {e}")
+        return jsonify({"success": False, "error": "Database error"}), 500
 
 @main_bp.route("/download/<string:event_id>", methods=["GET"])
 @main_bp.route("/download/<string:event_id>.mp4", methods=["GET"])

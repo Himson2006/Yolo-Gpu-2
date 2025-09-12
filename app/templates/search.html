@@ -271,6 +271,21 @@
             font-weight: 500;
             color: #495057;
         }
+        .delete-button {
+            background-color: #dc3545; /* Red for delete */
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            /* REMOVE THIS LINE: margin-left: 0.5rem; */
+        }
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+
     </style>
 </head>
 <body>
@@ -368,11 +383,9 @@
 
         {% if events %}
             {# This block now correctly protects the single "Download All" button #}
-            {% if session.user and 'http://biocoder.edge.com/roles' in session.user and 'Admin' in session.user['http://biocoder.edge.com/roles'] %}
             <div class="download-all-container">
                 <button type="button" class="search-button" onclick="downloadAll()">Download All Results</button>
             </div>
-            {% endif %}
             <ul class="results-list">
                 {% for event in events %}
                 <li class="video-item" data-id="{{ event.event_id }}">
@@ -397,6 +410,12 @@
                             <li><strong>Duration:</strong> {{ "%.2f"|format(event.video_duration_seconds) }} seconds</li>
                             <li><strong>Detected Classes:</strong> {{ event.detections.classes_detected|join(', ') }}</li>
                         </ul>
+                        <br>
+                        {% if session.user and 'http://biocoder.edge.com/roles' in session.user and 'Admin' in session.user['http://biocoder.edge.com/roles'] %}
+                        <button type="button" class="delete-button" onclick="deleteVideo(this, '{{ event.event_id }}')">
+                            Delete
+                        </button>
+                        {% endif %}
                     </div>
                 </li>
                 {% endfor %}
@@ -522,6 +541,32 @@
                 currentContainer.innerHTML = '';
                 currentButton.textContent = '▶ Play';
             }
+        }
+
+        function deleteVideo(button, id) {
+            if (!confirm(`Are you sure you want to permanently delete event ${id}? This cannot be undone.`)) {
+                return;
+            }
+
+            fetch(`/delete/${id}`, {
+                method: 'DELETE',
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Find the parent <li> element and remove it from the DOM
+                    const videoItem = button.closest('.video-item');
+                    if (videoItem) {
+                        videoItem.remove();
+                    }
+                } else {
+                    alert(`Error: ${data.error || 'Could not delete the video.'}`);
+                }
+            })
+            .catch(error => {
+                console.error('Deletion error:', error);
+                alert('An error occurred while trying to delete the video.');
+            });
         }
     </script>
 

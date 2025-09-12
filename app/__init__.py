@@ -1,5 +1,5 @@
 import os
-from flask import Flask, session, url_for, redirect
+from flask import Flask, session, url_for, redirect, abort
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
 from authlib.integrations.flask_client import OAuth
@@ -41,6 +41,16 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated
+
+def admin_required(f):
+    """Decorator to ensure the user is an admin."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_roles = session.get('user', {}).get('http://biocoder.edge.com/roles', [])
+        if 'user' not in session or 'Admin' not in user_roles:
+            abort(403)  # Forbidden
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def create_app():
