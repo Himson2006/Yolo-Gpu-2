@@ -87,6 +87,9 @@ def search_videos():
     
     search_args = request.args.copy()
     search_args.pop('page', None)
+    
+    available_classes_query = db.session.query(Event.primary_species).distinct().order_by(Event.primary_species)
+    available_classes = [item[0] for item in available_classes_query.all()]
 
     # --- Step 6: Render the template ---
     # The template will now correctly handle all cases:
@@ -97,7 +100,7 @@ def search_videos():
                            min_duration=min_duration, start_date=start_date_str,end_date=end_date_str,
                            device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
                            match_type=match_type, search_args=search_args,
-                           search_performed=search_performed)
+                           search_performed=search_performed, available_classes=available_classes)
 
 @main_bp.route("/change_class/<string:event_id>", methods=["POST"])
 @admin_required

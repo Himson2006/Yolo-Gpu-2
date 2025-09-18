@@ -314,7 +314,11 @@
                     <strong>Available Classes:</strong>
                     <button type="button" class="toggle-button" onclick="toggleClasses(this)">View</button>
                     <div id="classList" style="display: none; margin-top: 0.5rem; padding-left: 1rem; font-style: italic;">
-                        'Common_Raccoon', 'Mule_Deer', 'White-Tailed_Deer, 'Nine-Banded_Armadillo', 'Rabbit_Hare', 'Vulture'
+                        {% if available_classes %}
+                            {{ available_classes|join(', ') }}
+                        {% else %}
+                            No classes found in the database.
+                        {% endif %}
                     </div>
                 </li>
                 <li><strong>Class name:</strong> Enter a single class or multiple classes separated by commas (e.g., <em>Deer, Squirrel</em>).</li>
