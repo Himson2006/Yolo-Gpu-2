@@ -7,10 +7,12 @@ from functools import wraps
 from sqlalchemy import create_engine, text
 from urllib.parse import urlparse
 import logging
+from flask_migrate import Migrate
 
 
 # Initialize SQLAlchemy
 db = SQLAlchemy()
+migrate = Migrate()
 oauth = OAuth()
 
 def ensure_db(uri: str):
@@ -76,6 +78,8 @@ def create_app():
     # 2) Initialize SQLAlchemy
     db.init_app(app)
     
+    migrate.init_app(app, db)
+    
     # 3) Initialize Authlib
     oauth.init_app(app)
     auth0 = oauth.register(
@@ -89,10 +93,6 @@ def create_app():
 
     # 4) Import models so SQLAlchemy knows about them
     from app import models  # no circular import, after db is defined
-
-    # 5) Create tables for all models
-    with app.app_context():
-        db.create_all()
 
     # 6) Register blueprints / routes
     from app.views import main_bp

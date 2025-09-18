@@ -41,6 +41,7 @@ class Detection(db.Model):
     )
     detection_json = db.Column(JSONB, nullable=False)
     classes_detected = db.Column(ARRAY(db.String(64)), nullable=False)
+    classes_modified = db.Column(ARRAY(db.String(64)), nullable=True)
     max_count_per_frame = db.Column(JSONB, nullable=False)
 
     def __repr__(self):

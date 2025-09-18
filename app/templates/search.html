@@ -408,13 +408,30 @@
                             <li><strong>Device:</strong> {{ event.device_id }}</li>
                             <li><strong>Recorded:</strong> {{ event.timestamp_start_utc.strftime('%Y-%m-%d %H:%M:%S') }}</li>
                             <li><strong>Duration:</strong> {{ "%.2f"|format(event.video_duration_seconds) }} seconds</li>
-                            <li><strong>Detected Classes:</strong> {{ event.detections.classes_detected|join(', ') }}</li>
+                            <li data-id="class-list-{{ event.event_id }}"><strong>Detected Classes:</strong> 
+                                {{ (event.detections.classes_modified or event.detections.classes_detected)|join(', ') }}
+                                {% if event.detections.classes_modified is not none %}
+                                <span style="font-style: italic; color: #6c757d;">(edited)</span>
+                                {% endif %}
+                            </li>
                         </ul>
                         <br>
                         {% if session.user and 'http://biocoder.edge.com/roles' in session.user and 'Admin' in session.user['http://biocoder.edge.com/roles'] %}
-                        <button type="button" class="delete-button" onclick="deleteVideo(this, '{{ event.event_id }}')">
-                            Delete
-                        </button>
+                        <div class="admin-controls" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                            <div class="form-group" style="margin-bottom: 0.5rem;">
+                                <label for="class-edit-{{ event.event_id }}" style="font-weight: 500; font-size: 0.9rem;">Change Classes (comma-separated):</label>
+                                <input type="text" id="class-edit-{{ event.event_id }}" 
+                                    class="class-edit-input" 
+                                    style="width: 100%; padding: 0.5rem;"
+                                    value="{{ (event.detections.classes_modified or event.detections.classes_detected)|join(', ') }}">
+                            </div>
+                            <button type="button" class="details-button" style="background-color: var(--primary-color);" onclick="changeClass(this, '{{ event.event_id }}')">
+                                Save Changes
+                            </button>
+                            <button type="button" class="delete-button" onclick="deleteVideo(this, '{{ event.event_id }}')">
+                                Delete
+                            </button>
+                        </div>
                         {% endif %}
                     </div>
                 </li>
@@ -541,6 +558,41 @@
                 currentContainer.innerHTML = '';
                 currentButton.textContent = '▶ Play';
             }
+        }
+        
+        function changeClass(button, id) {
+            const input = document.getElementById(`class-edit-${id}`);
+            const newClasses = input.value;
+
+            if (!confirm(`Are you sure you want to change the classes for event ${id}?`)) {
+                return;
+            }
+
+            fetch(`/change_class/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ classes: newClasses }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Classes updated successfully!');
+                    // Update the class list in the UI without a full reload
+                    const classListElement = document.querySelector(`[data-id="class-list-${id}"]`);
+                    if (classListElement) {
+                        const updatedHtml = `<strong>Detected Classes:</strong> ${data.updated_classes.join(', ')} <span style="font-style: italic; color: #6c757d;">(edited)</span>`;
+                        classListElement.innerHTML = updatedHtml;
+                    }
+                } else {
+                    alert(`Error: ${data.error || 'Could not update classes.'}`);
+                }
+            })
+            .catch(error => {
+                console.error('Class change error:', error);
+                alert('An error occurred while trying to change the classes.');
+            });
         }
 
         function deleteVideo(button, id) {

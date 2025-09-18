@@ -40,7 +40,7 @@ def search_videos():
         class_names_lower = [name.lower() for name in class_names_original]
         if class_names_lower:
             subq = db.session.query(Detection.event_id).distinct()
-            unnested_func = func.unnest(Detection.classes_detected)
+            unnested_func = func.unnest(func.coalesce(Detection.classes_modified, Detection.classes_detected))
             class_alias = unnested_func.label("class_name")
             lateral_join = db.select(class_alias).select_from(unnested_func).lateral()
             conditions = [func.lower(lateral_join.c.class_name).ilike(name) for name in class_names_lower]
@@ -98,6 +98,34 @@ def search_videos():
                            device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
                            match_type=match_type, search_args=search_args,
                            search_performed=search_performed)
+
+@main_bp.route("/change_class/<string:event_id>", methods=["POST"])
+@admin_required
+def change_class(event_id: str):
+    """Admin-only route to modify the detected classes for an event."""
+    event = Event.query.get(event_id)
+    if not event or not event.detections:
+        return jsonify({"success": False, "error": "Event not found"}), 404
+
+    data = request.get_json()
+    if not data or 'classes' not in data:
+        return jsonify({"success": False, "error": "Invalid request body"}), 400
+
+    new_classes_str = data.get('classes', '')
+    new_classes_list = [s.strip() for s in new_classes_str.split(',') if s.strip()]
+
+    try:
+        event.detections.classes_modified = new_classes_list
+        db.session.commit()
+        return jsonify({
+            "success": True, 
+            "message": "Classes updated successfully.",
+            "updated_classes": new_classes_list
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating classes for event {event_id}: {e}")
+        return jsonify({"success": False, "error": "Database error"}), 500
     
 @main_bp.route("/delete/<string:event_id>", methods=["DELETE"])
 @admin_required
