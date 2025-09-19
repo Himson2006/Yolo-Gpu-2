@@ -285,6 +285,27 @@
         .delete-button:hover {
             background-color: #c82333;
         }
+        behavior-form-grid {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 0.5rem; /* This creates space between all items */
+        }
+        .behavior-form-grid .form-group {
+            margin-bottom: 0;
+        }
+        /* Make the time input fields a small, fixed width */
+        .behavior-form-grid input[type="number"] {
+            width: 75px; 
+        }
+        /* Make the description field a larger, but still fixed, width */
+        .behavior-form-grid input[type="text"] {
+            width: 220px;
+        }
+        .save-behavior-button {
+            background-color: #28a745;
+            padding: 0.5rem;
+        }
 
     </style>
 </head>
@@ -418,6 +439,16 @@
                                 <span style="font-style: italic; color: #6c757d;">(edited)</span>
                                 {% endif %}
                             </li>
+                            {% if event.behaviors %}
+                            <li>
+                                <strong>Behaviors:</strong>
+                                <ul id="behavior-list-{{ event.event_id }}" style="list-style-type: disc; margin-top: 0.5rem;">
+                                    {% for behavior in event.behaviors %}
+                                    <li>{{ "%.1f"|format(behavior.start_time_seconds) }}s - {{ "%.1f"|format(behavior.end_time_seconds) }}s: {{ behavior.behavior_description }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </li>
+                            {% endif %}
                         </ul>
                         <br>
                         {% if session.user and 'http://biocoder.edge.com/roles' in session.user and 'Admin' in session.user['http://biocoder.edge.com/roles'] %}
@@ -435,6 +466,21 @@
                             <button type="button" class="delete-button" onclick="deleteVideo(this, '{{ event.event_id }}')">
                                 Delete
                             </button>
+                            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                <label style="font-weight: 500; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Add Behavior:</label>
+                                <div class="behavior-form-grid">
+                                    <div class="form-group">
+                                        <input type="number" id="start-time-{{ event.event_id }}" placeholder="Start (s)" step="0.1" style="padding: 0.5rem;">
+                                    </div>
+                                    <div class="form-group">
+                                        <input type="number" id="end-time-{{ event.event_id }}" placeholder="End (s)" step="0.1" style="padding: 0.5rem; margin-top: 0.5rem;">
+                                    </div>
+                                    <div class="form-group">
+                                        <input type="text" id="behavior-desc-{{ event.event_id }}" placeholder="Description" style="padding: 0.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                                    </div>
+                                    <button type="button" class="details-button save-behavior-button" onclick="addBehavior(this, '{{ event.event_id }}')">Save</button>
+                                </div>
+                            </div>
                         </div>
                         {% endif %}
                     </div>
@@ -624,6 +670,60 @@
                 alert('An error occurred while trying to delete the video.');
             });
         }
+
+        function addBehavior(button, id) {
+            const startTimeInput = document.getElementById(`start-time-${id}`);
+            const endTimeInput = document.getElementById(`end-time-${id}`);
+            const descriptionInput = document.getElementById(`behavior-desc-${id}`);
+
+            const behaviorData = {
+                start_time: startTimeInput.value,
+                end_time: endTimeInput.value,
+                description: descriptionInput.value
+            };
+
+            if (!behaviorData.start_time || !behaviorData.end_time || !behaviorData.description) {
+                alert('Please fill out all behavior fields.');
+                return;
+            }
+
+            fetch(`/add_behavior/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(behaviorData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Behavior added successfully!');
+                    
+                    // Dynamically add the new behavior to the list
+                    const behaviorList = document.getElementById(`behavior-list-${id}`);
+                    const newListItem = document.createElement('li');
+                    const b = data.behavior;
+                    newListItem.textContent = `${b.start.toFixed(1)}s - ${b.end.toFixed(1)}s: ${b.description}`;
+                    
+                    if (behaviorList) {
+                        behaviorList.appendChild(newListItem);
+                    } else {
+                        // If the list doesn't exist, reload to show the new section
+                        window.location.reload();
+                    }
+
+                    // Clear input fields
+                    startTimeInput.value = '';
+                    endTimeInput.value = '';
+                    descriptionInput.value = '';
+                } else {
+                    alert(`Error: ${data.error || 'Could not add behavior.'}`);
+                }
+            })
+            .catch(error => {
+                console.error('Add behavior error:', error);
+                alert('An error occurred while trying to add the behavior.');
+            });
+        }
+
     </script>
 
 </body>

@@ -26,7 +26,14 @@ class Event(db.Model):
         backref='event',
         cascade='all, delete-orphan',
         lazy='joined',
-        uselist=False
+        uselist=False)
+        
+    behaviors = db.relationship(
+        'Behavior',
+        backref='event',
+        cascade='all, delete-orphan',
+        lazy='joined',
+        order_by='Behavior.start_time_seconds'
     )
 
 class Detection(db.Model):
@@ -46,3 +53,15 @@ class Detection(db.Model):
 
     def __repr__(self):
         return f"<Detection {self.id} for Event {self.event_id}>"
+    
+class Behavior(db.Model):
+    __tablename__ = 'behaviors'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.String(64), db.ForeignKey('events.event_id', ondelete='CASCADE'), nullable=False)
+    start_time_seconds = db.Column(db.Float, nullable=False)
+    end_time_seconds = db.Column(db.Float, nullable=False)
+    behavior_description = db.Column(db.Text, nullable=False)
+
+    def __repr__(self):
+        return f"<Behavior {self.id} for Event {self.event_id}>"

@@ -7,7 +7,7 @@ from flask import (
 )
 from sqlalchemy import cast, Integer, or_, extract, and_, func
 from app import db
-from app.models import Event, Detection
+from app.models import Event, Detection, Behavior
 import zipfile
 from app import login_required, admin_required
 
@@ -101,6 +101,56 @@ def search_videos():
                            device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
                            match_type=match_type, search_args=search_args,
                            search_performed=search_performed, available_classes=available_classes)
+
+@main_bp.route("/add_behavior/<string:event_id>", methods=["POST"])
+@admin_required
+def add_behavior(event_id: str):
+    """Admin-only route to add a behavior annotation to an event."""
+    event = Event.query.get(event_id)
+    if not event:
+        return jsonify({"success": False, "error": "Event not found"}), 404
+
+    data = request.get_json()
+    start_time = data.get('start_time')
+    end_time = data.get('end_time')
+    description = data.get('description')
+
+    if not all([start_time, end_time, description]):
+        return jsonify({"success": False, "error": "Missing required fields"}), 400
+
+    try:
+        start_time_float = float(start_time)
+        end_time_float = float(end_time)
+    except ValueError:
+        return jsonify({"success": False, "error": "Start and end times must be numbers"}), 400
+    
+    if end_time_float <= start_time_float:
+        return jsonify({"success": False, "error": "End time must be after start time"}), 400
+
+    try:
+        new_behavior = Behavior(
+            event_id=event_id,
+            start_time_seconds=start_time_float,
+            end_time_seconds=end_time_float,
+            behavior_description=description.strip()
+        )
+        db.session.add(new_behavior)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Behavior added successfully.",
+            "behavior": {
+                "id": new_behavior.id,
+                "start": new_behavior.start_time_seconds,
+                "end": new_behavior.end_time_seconds,
+                "description": new_behavior.behavior_description
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error adding behavior for event {event_id}: {e}")
+        return jsonify({"success": False, "error": "Database error"}), 500
 
 @main_bp.route("/change_class/<string:event_id>", methods=["POST"])
 @admin_required
