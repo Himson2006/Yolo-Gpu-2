@@ -65,3 +65,13 @@ class Behavior(db.Model):
 
     def __repr__(self):
         return f"<Behavior {self.id} for Event {self.event_id}>"
+    
+class BehaviorChoice(db.Model):
+    
+    __tablename__ = 'behavior_choices'
+    
+    id = db. Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(100), unique = True, nullable = False)
+    
+    def __repr__(self):
+        return f"<BehaviorChoice {self.name}>"

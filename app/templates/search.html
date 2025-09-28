@@ -444,7 +444,11 @@
                                 <strong>Behaviors:</strong>
                                 <ul id="behavior-list-{{ event.event_id }}" style="list-style-type: disc; margin-top: 0.5rem;">
                                     {% for behavior in event.behaviors %}
-                                    <li>{{ "%.1f"|format(behavior.start_time_seconds) }}s - {{ "%.1f"|format(behavior.end_time_seconds) }}s: {{ behavior.behavior_description }}</li>
+                                    <li id="behavior-{{ behavior.id }}">{{ "%.1f"|format(behavior.start_time_seconds) }}s - {{ "%.1f"|format(behavior.end_time_seconds) }}s: {{ behavior.behavior_description }}
+                                        {% if session.user and 'http://biocoder.edge.com/roles' in session.user and 'Admin' in session.user['http://biocoder.edge.com/roles'] %}
+                                        <button type="button" class="delete-button" style = "padding: 2px 6px; font-size: 0.8em; margin-left: 8px;" onclick="deleteBehavior('{{ behavior.id }}')"> &times; </button>
+                                        {% endif %}
+                                    </li>
                                     {% endfor %}
                                 </ul>
                             </li>
@@ -476,7 +480,12 @@
                                         <input type="number" id="end-time-{{ event.event_id }}" placeholder="End (s)" step="0.1" style="padding: 0.5rem; margin-top: 0.5rem;">
                                     </div>
                                     <div class="form-group">
-                                        <input type="text" id="behavior-desc-{{ event.event_id }}" placeholder="Description" style="padding: 0.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                                        <select id="behavior-desc-{{ event.event_id }}" style="padding: 0.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; width: 220px; font-family: inherit; font-size: inherit;"></select>
+                                        <div id="addNewBehaviorSection-{{ event.event_id }}" style="display: none; margin-top: 10px;">
+                                            <input type="text" class="form-control" id="newBehaviorName-{{ event.event_id }}" placeholder="Enter new behavior name" style="width: 220px;">
+                                            <button type="button" class="details-button" style="margin-top: 5px;" onclick="saveNewBehaviorChoice('{{ event.event_id }}')">Save New</button>
+                                            <button type="button" class="details-button" style="margin-top: 5px; background-color: #6c757d;" onclick="cancelAddNew('{{ event.event_id }}')">Cancel</button>
+                                        </div>
                                     </div>
                                     <button type="button" class="details-button save-behavior-button" onclick="addBehavior(this, '{{ event.event_id }}')">Save</button>
                                 </div>
@@ -543,6 +552,9 @@
             if (isOpening) {
                 descriptionContainer.style.display = 'block';
                 button.textContent = 'Hide';
+
+                populateBehaviorDropdown(id);
+
             } else {
                 descriptionContainer.style.display = 'none';
                 button.textContent = 'Details';
@@ -674,12 +686,12 @@
         function addBehavior(button, id) {
             const startTimeInput = document.getElementById(`start-time-${id}`);
             const endTimeInput = document.getElementById(`end-time-${id}`);
-            const descriptionInput = document.getElementById(`behavior-desc-${id}`);
+            const descriptionSelect = document.getElementById(`behavior-desc-${id}`);
 
             const behaviorData = {
                 start_time: startTimeInput.value,
                 end_time: endTimeInput.value,
-                description: descriptionInput.value
+                description: descriptionSelect.value
             };
 
             if (!behaviorData.start_time || !behaviorData.end_time || !behaviorData.description) {
@@ -713,7 +725,7 @@
                     // Clear input fields
                     startTimeInput.value = '';
                     endTimeInput.value = '';
-                    descriptionInput.value = '';
+                    descriptionSelect.selectedIndex = 0;
                 } else {
                     alert(`Error: ${data.error || 'Could not add behavior.'}`);
                 }
@@ -721,6 +733,132 @@
             .catch(error => {
                 console.error('Add behavior error:', error);
                 alert('An error occurred while trying to add the behavior.');
+            });
+        }
+
+        async function populateBehaviorDropdown(eventId) {
+            const selectElement = document.getElementById(`behavior-desc-${eventId}`);
+
+            if (selectElement.options.length > 1) return;
+
+            selectElement.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/behavior_choices');
+                if(!response.ok) throw new Error('Failed to fetch choices');
+
+                const choices = await response.json();
+
+                const placeholder = document.createElement('option');
+
+                placeholder.value = "";
+                placeholder.textContent = "Select behavior...";
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                selectElement.appendChild(placeholder);
+
+
+                choices.forEach(choice => {
+                    const option = document.createElement('option');
+                    option.value = choice;
+                    option.textContent = choice;
+                    selectElement.appendChild(option);
+                })
+
+
+            } catch ( error ) {
+                console.error('Error populating behavior dropdown:', error);
+                selectElement.innerHTML = '<option>Could not load options</option>';
+            }
+
+            const addNewOption = document.createElement('option');
+            addNewOption.value = '__add_new__'; 
+            addNewOption.textContent = '< Add New... >';
+            selectElement.appendChild(addNewOption);
+
+
+            selectElement.addEventListener('change', function() {
+
+                if ( this.value === '__add_new__') {
+                    document.getElementById(`addNewBehaviorSection-${eventId}`).style.display = 'block';
+                } else {
+                // If they select any other option, make sure the section stays hidden.
+                document.getElementById(`addNewBehaviorSection-${eventId}`).style.display = 'none';
+                }
+            })
+        }
+
+        function saveNewBehaviorChoice(eventId) {
+            const inputElement = document.getElementById(`newBehaviorName-${eventId}`);
+            const newName = inputElement.value.trim();
+
+            if ( !newName) {
+                alert('Please enter a name for the new behavior.');
+                return;
+            }
+
+            fetch('/api/behavior_choices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName }),
+            })
+
+            .then(response => response.json())
+            .then( data => {
+                if (data.success) {
+                    const selectElement = document.getElementById(`behavior-desc-${eventId}`);
+            
+                    const newOption = document.createElement('option');
+                    newOption.value = data.name;
+                    newOption.textContent = data.name;
+
+                    const addNewOption = selectElement.querySelector('option[value="__add_new__"]');
+                    
+                    selectElement.insertBefore(newOption, addNewOption);
+
+                    newOption.selected = true;
+
+                    cancelAddNew(eventId); 
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+
+            .catch(error => {
+                console.error('Error saving new behavior choice:', error);
+                alert('A network error occurred. Please try again.');
+            });
+
+        }
+
+        function cancelAddNew(eventId) {
+            document.getElementById(`addNewBehaviorSection-${eventId}`).style.display = 'none';
+            document.getElementById(`newBehaviorName-${eventId}`).value = '';
+            document.getElementById(`behavior-desc-${eventId}`).selectedIndex = 0;
+        }
+        
+        function deleteBehavior(behaviorID) {
+            if (!confirm('Are you sure you want to permanently delete this behavior? This cannot be undone.')){
+                return;
+            }
+
+            fetch(`/delete_behavior/${behaviorID}`, {method: 'DELETE'})
+
+            .then(response => response.json())
+            .then(data => {
+                if ( data.success){
+                    const listItem = document.getElementById(`behavior-${behaviorID}`);
+                    if (listItem){
+                        listItem.remove();
+                    }
+                }
+                else {
+                    alert(`Error: ${data.error || 'Could not delete the behavior.'}`);
+                }
+            })
+            .catch(error => {
+                console.error("Deletion error:", error);
+                alert('A network error occurred while trying to delete the behavior.');
             });
         }
 

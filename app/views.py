@@ -7,7 +7,7 @@ from flask import (
 )
 from sqlalchemy import cast, Integer, or_, extract, and_, func
 from app import db
-from app.models import Event, Detection, Behavior
+from app.models import Event, Detection, Behavior, BehaviorChoice
 import zipfile
 from app import login_required, admin_required
 
@@ -101,6 +101,38 @@ def search_videos():
                            device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
                            match_type=match_type, search_args=search_args,
                            search_performed=search_performed, available_classes=available_classes)
+    
+@main_bp.route("/api/behavior_choices", methods=["GET"])
+def get_behavior_choices():
+    choices = BehaviorChoice.query.order_by(BehaviorChoice.name).all()
+    choices_names = [choice.name for choice in choices]
+    return jsonify(choices_names)
+
+@main_bp.route("/api/behavior_choices", methods=["POST"])
+@admin_required
+def add_behavior_choice():
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({"success": False, "error": "Invalid request body"}), 400
+    
+    new_name = data['name'].strip()
+    
+    if not new_name:
+        return jsonify({"success": False, "error": "Behavior name cannot be empty"}), 400
+    
+    existing = BehaviorChoice.query.filter_by(name=new_name).first()
+    if existing:
+        return jsonify({"success": False, "error": "Behavior choice already exists"}), 400
+    
+    try:
+        new_choice = BehaviorChoice(name=new_name)
+        db.session.add(new_choice)
+        db.session.commit()
+        return jsonify({"success": True, "name": new_choice.name}), 201
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error adding behavior choice: {e}")
+        return jsonify({"success": False, "error": "Database error"}), 500
 
 @main_bp.route("/add_behavior/<string:event_id>", methods=["POST"])
 @admin_required
@@ -137,6 +169,34 @@ def add_behavior(event_id: str):
         db.session.add(new_behavior)
         db.session.commit()
         
+        ## --- START: New logic for saving to JSON file ---
+        
+        json_filename = f"{event_id}.json"
+        
+        detections_directory = os.path.join(current_app.root_path, 'uploads', 'incoming', 'detections')
+        json_file_path = os.path.join(detections_directory, json_filename)
+        
+        try:
+            with open(json_file_path, 'r') as f:
+                event_data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return jsonify({"success": False, "error": f"JSON file not found or is invalid for event {event_id}."}), 404
+
+        behavior_list = event_data.get('behaviors', [])
+        
+        new_behavior_dict = {
+            'start_time_seconds': new_behavior.start_time_seconds,
+            'end_time_seconds': new_behavior.end_time_seconds,
+            'behavior_description': new_behavior.behavior_description
+            
+        }
+        
+        behavior_list.append(new_behavior_dict)
+        event_data["behaviors"] = behavior_list
+        
+        with open(json_file_path, 'w') as f:
+            json.dump(event_data, f, indent=4)
+        
         return jsonify({
             "success": True,
             "message": "Behavior added successfully.",
@@ -151,6 +211,42 @@ def add_behavior(event_id: str):
         db.session.rollback()
         current_app.logger.error(f"Error adding behavior for event {event_id}: {e}")
         return jsonify({"success": False, "error": "Database error"}), 500
+    
+@main_bp.route("/delete_behavior/<int:behavior_id>", methods = ["DELETE"])
+@admin_required
+def delete_behavior(behavior_id):
+    behavior_to_delete = Behavior.query.get(behavior_id)
+    if not behavior_to_delete:
+        return jsonify({"success": False, "error": "behavior not found"}), 404
+    
+    event_id = behavior_to_delete.event_id
+    
+    try:
+        db.session.delete(behavior_to_delete)
+        db.session.commit()
+        
+        json_filename = f"{event_id}.json"
+        detections_directory = os.path.join(current_app.root_path, 'uploads', 'incoming', 'detections')
+        json_file_path = os.path.join(detections_directory, json_filename)
+        
+        if os.path.exists(json_file_path):
+            with open (json_file_path, 'r') as f:
+                event_data = json.load(f)
+                
+            behavior_list = event_data.get('behaviors', [])
+            updated_behaviors = [b for b in behavior_list if not (b.get('start_time_seconds')== behavior_to_delete.start_time_seconds and b.get('behavior_description') == behavior_to_delete.behavior_description)]
+            
+            event_data['behaviors'] = updated_behaviors
+            
+            with open(json_file_path, 'w') as f:
+                json.dump(event_data, f, indent=4)
+                
+        return jsonify({"success": True, "message": "Behavior deleted successfully."})
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting behavior {behavior_id}: {e}")
+        return jsonify({"success": False, "error": "An internal error occurred."}), 500
 
 @main_bp.route("/change_class/<string:event_id>", methods=["POST"])
 @admin_required
@@ -170,6 +266,28 @@ def change_class(event_id: str):
     try:
         event.detections.classes_modified = new_classes_list
         db.session.commit()
+        
+        json_filename = f"{event_id}.json"
+        detections_directory = os.path.join(current_app.root_path, 'uploads', 'incoming', 'detections')
+        json_file_path = os.path.join(detections_directory, json_filename)
+        
+        try:
+            with open(json_file_path, 'r') as f:
+                event_data = json.load(f)
+        
+        except (FileNotFoundError, json.JSONDecodeError):
+            current_app.logger.error(f"Could not find or read JSON file to update classes for event {event_id}.")
+            return jsonify({
+                "success": True,
+                "message": "Classes updated successfully in DB, but JSON file was not found.",
+                "updated_classes": new_classes_list
+            })
+            
+        event_data['classes_modified'] = new_classes_list
+        
+        with open(json_file_path, 'w') as f:
+            json.dump(event_data, f, indent=4)
+        
         return jsonify({
             "success": True, 
             "message": "Classes updated successfully.",
