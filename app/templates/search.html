@@ -404,6 +404,19 @@
                 <label for="min_duration">Min Video Duration (s)</label>
                 <input type="number" id="min_duration" name="min_duration" value="{{ min_duration or '' }}" placeholder="e.g., 5" step="0.1">
             </div>
+
+            <div class="form-group">
+                <label for="behavior">Behavior</label>
+                <select id="behavior" name="behavior">
+                    <option value="" {% if not selected_behavior %}selected{% endif %}>Any</option>
+                    {% for behavior in available_behaviors %}
+                        <option value="{{ behavior }}" {% if behavior == selected_behavior %}selected{% endif %}>
+                            {{ behavior }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <div class="form-group">
                 <label for="start_date">Start Date</label>
                 <input type="date" id="start_date" name="start_date" value="{{ start_date or '' }}">

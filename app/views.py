@@ -31,6 +31,10 @@ def search_videos():
     sort_by = request.args.get("sort_by", "recent", type=str)
     search_performed = bool(request.args)
     events = []
+    
+    selected_behavior = request.args.get('behavior', '')
+    available_behaviors = db.session.query(Behavior.behavior_description).distinct().order_by(Behavior.behavior_description).all()
+    available_behaviors = [b[0] for b in available_behaviors]
 
     q = Event.query.join(Detection)
 
@@ -81,6 +85,9 @@ def search_videos():
         q = q.order_by(Event.video_duration_seconds.asc())
     else: # Default to 'recent'
         q = q.order_by(Event.timestamp_start_utc.desc())
+    
+    if selected_behavior:
+        q = q.join(Behavior).filter(Behavior.behavior_description == selected_behavior)
 
     pagination = q.paginate(page=page, per_page=30, error_out=False)
     events = pagination.items
@@ -100,7 +107,8 @@ def search_videos():
                            min_duration=min_duration, start_date=start_date_str,end_date=end_date_str,
                            device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
                            match_type=match_type, search_args=search_args,
-                           search_performed=search_performed, available_classes=available_classes)
+                           search_performed=search_performed, available_classes=available_classes, available_behaviors = available_behaviors
+                           , selected_behavior=selected_behavior)
     
 @main_bp.route("/api/behavior_choices", methods=["GET"])
 def get_behavior_choices():
