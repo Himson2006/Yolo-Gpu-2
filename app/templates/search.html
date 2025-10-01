@@ -306,6 +306,42 @@
             background-color: #28a745;
             padding: 0.5rem;
         }
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 0;
+        }
+        .page-button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            margin: 0 0.25rem;
+        }
+        .page-button:hover {
+            background-color: var(--primary-hover);
+        }
+        .page-button.disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .page-button.active {
+            background-color: var(--primary-hover);
+            cursor: default;
+        }
+        .page-ellipsis {
+            margin: 0 0.5rem;
+        }
+        .page-info {
+            margin: 0 1.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
 
     </style>
 </head>
@@ -500,23 +536,23 @@
             {% if pagination and pagination.pages > 1 %}
             <div class="pagination-controls">
                 {% if pagination.has_prev %}
-                    <a href="{{ url_for('main.search_videos', page=pagination.prev_num,**search_args) }}" class="page-button">
-                        &laquo; Previous
-                    </a>
-                {% else %}
-                    <span class="page-button disabled">&laquo; Previous</span>
+                    <a href="{{ url_for('main.search_videos', page=pagination.prev_num, **search_args) }}" class="page-button">&laquo;</a>
                 {% endif %}
 
-                <span class="page-info">
-                    Page {{ pagination.page }} of {{ pagination.pages }}
-                </span>
+                {% for p in pagination.iter_pages() %}
+                    {% if p %}
+                        {% if p == pagination.page %}
+                            <a class="page-button active">{{ p }}</a>
+                        {% else %}
+                            <a href="{{ url_for('main.search_videos', page=p, **search_args) }}" class="page-button">{{ p }}</a>
+                        {% endif %}
+                    {% else %}
+                        <span class="page-ellipsis">...</span>
+                    {% endif %}
+                {% endfor %}
 
                 {% if pagination.has_next %}
-                    <a href="{{ url_for('main.search_videos', page=pagination.next_num,**search_args) }}" class="page-button">
-                        Next &raquo;
-                    </a>
-                {% else %}
-                    <span class="page-button disabled">Next &raquo;</span>
+                    <a href="{{ url_for('main.search_videos', page=pagination.next_num, **search_args) }}" class="page-button">&raquo;</a>
                 {% endif %}
             </div>
             {% endif %}
