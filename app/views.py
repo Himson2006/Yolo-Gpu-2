@@ -379,3 +379,31 @@ def download_batch():
         as_attachment=True,
         download_name='videos.zip'
     )
+
+@main_bp.route('/api/class_distribution', methods=['GET'])
+def class_distribution_data():
+    """
+    This endpoint provides data for the detected class distribution chart.
+    It counts how many times each class (e.g., 'Deer', 'Car') has been detected.
+    """
+    
+    unnested_classes = func.unnest(
+        func.coalesce(Detection.classes_modified, Detection.classes_detected)
+    ).label("class_name")
+    
+    counts = db.session.query(
+        unnested_classes,
+        func.count()
+    ).group_by(unnested_classes).all()
+    
+    chart_data = {
+        'labels': [item[0] for item in counts],
+        'values': [item[1] for item in counts]
+    }
+    
+    return jsonify(chart_data)
+
+@main_bp.route('/dashboard')
+def dashboard():
+    """Renders the main dashboard page."""
+    return render_template('dashboard.html')

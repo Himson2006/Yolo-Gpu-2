@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Event Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Basic styling to make the chart look nice on the page */
+        body { font-family: sans-serif; display: flex; justify-content: center; margin-top: 50px; }
+        .chart-container { width: 600px; }
+    </style>
+</head>
+<body>
+
+    <div class="chart-container">
+        <h2>Detected Class Distribution</h2>
+        <canvas id="classDistributionChart"></canvas>
+    </div>
+
+    <script>
+        // This is the JavaScript part that runs in the browser.
+        
+        // 3. We use an async function to fetch data from our backend.
+        //    'async' and 'await' are modern JavaScript features that make
+        //    it easier to handle operations that take time, like getting data
+        //    from a server.
+        async function createClassDistributionChart() {
+            // 4. Fetch the data from the endpoint we created in Flask.
+            const response = await fetch('/api/class_distribution');
+            const data = await response.json(); // Convert the JSON response into a JavaScript object.
+
+            // 5. Get a reference to our <canvas> element from the HTML above.
+            const ctx = document.getElementById('classDistributionChart').getContext('2d');
+
+            // 6. Create the new chart!
+            new Chart(ctx, {
+                type: 'pie', // We specify the chart type.
+                data: {
+                    labels: data.labels, // The labels (e.g., "Deer") come from our API.
+                    datasets: [{
+                        label: '# of Detections',
+                        data: data.values, // The values (e.g., 15) also come from our API.
+                        backgroundColor: [ // Add some nice default colors
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 206, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)',
+                            'rgba(255, 159, 64, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true // This makes the chart resize nicely.
+                }
+            });
+        }
+
+        // 7. Call the function to create the chart when the page loads.
+        createClassDistributionChart();
+    </script>
+
+</body>
+</html>
