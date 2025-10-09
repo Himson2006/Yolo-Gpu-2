@@ -407,3 +407,19 @@ def class_distribution_data():
 def dashboard():
     """Renders the main dashboard page."""
     return render_template('dashboard.html')
+
+@main_bp.route('/api/detections_over_time')
+def detections_over_time_data():
+    day_expression = func.date(Event.timestamp_start_utc).label('day')
+    
+    counts = db.session.query(
+        day_expression,
+        func.count(Event.event_id)
+    ).group_by(day_expression).order_by(day_expression).all()
+    
+    chart_data = {
+        'labels': [item[0].strftime('%Y-%m-%d') for item in counts],
+        'values': [item[1] for item in counts]
+    }
+    
+    return jsonify(chart_data) 
