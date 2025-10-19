@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # reads .env in project root
+load_dotenv()
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -22,7 +22,6 @@ class Config:
     UPLOAD_FOLDER = os.path.join(basedir, "app", "uploads")
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024 * 1024  # 5 GB max
 
-    # YOLO model path (override via env)
     YOLO_MODEL_PATH = os.environ.get(
         "YOLO_MODEL_PATH",
         os.path.join(basedir, "yolo_weights", "best.pt")
