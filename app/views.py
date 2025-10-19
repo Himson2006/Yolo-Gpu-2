@@ -10,6 +10,13 @@ from app import db
 from app.models import Event, Detection, Behavior, BehaviorChoice
 import zipfile
 from app import login_required, admin_required
+import plotly
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
+from itertools import combinations
+from collections import defaultdict, Counter
+import itertools
 
 main_bp = Blueprint("main", __name__)
 
@@ -386,21 +393,20 @@ def class_distribution_data():
     This endpoint provides data for the detected class distribution chart.
     It counts how many times each class (e.g., 'Deer', 'Car') has been detected.
     """
-    
     unnested_classes = func.unnest(
         func.coalesce(Detection.classes_modified, Detection.classes_detected)
     ).label("class_name")
-    
+
     counts = db.session.query(
         unnested_classes,
         func.count()
     ).group_by(unnested_classes).all()
-    
+
     chart_data = {
         'labels': [item[0] for item in counts],
         'values': [item[1] for item in counts]
     }
-    
+
     return jsonify(chart_data)
 
 @main_bp.route('/dashboard')
@@ -410,16 +416,72 @@ def dashboard():
 
 @main_bp.route('/api/detections_over_time')
 def detections_over_time_data():
-    day_expression = func.date(Event.timestamp_start_utc).label('day')
-    
+    day_expression = func.date(Event.timestamp_start_utc).label("day")
+
     counts = db.session.query(
         day_expression,
         func.count(Event.event_id)
     ).group_by(day_expression).order_by(day_expression).all()
-    
+
+    # Using 'x' and 'y' is more conventional for Plotly line charts
     chart_data = {
-        'labels': [item[0].strftime('%Y-%m-%d') for item in counts],
-        'values': [item[1] for item in counts]
+        'x': [item[0].strftime('%Y-%m-%d') for item in counts],
+        'y': [item[1] for item in counts]
     }
     
-    return jsonify(chart_data) 
+    return jsonify(chart_data)
+
+@main_bp.route('/api/class_cooccurrence')
+def class_cooccurrence_data():
+    """
+    Provides data for the class co-occurrence heatmap.
+    This is a more complex data processing task done in Python.
+    """
+    # 1. Fetch all class lists from the database.
+    # We only care about events where there's more than one class detected.
+    query = db.session.query(
+        func.coalesce(Detection.classes_modified, Detection.classes_detected)
+    ).filter(
+        func.array_length(
+            func.coalesce(Detection.classes_modified, Detection.classes_detected), 1
+        ) > 1
+    ).all()
+    
+    # query result is a list of lists, e.g., [['Deer', 'Squirrel'], ['Car', 'Person', 'Dog']]
+    all_class_lists = [row[0] for row in query]
+
+    # 2. Count all pairs.
+    # For each list, find all unique combinations of 2 classes.
+    # e.g., ['A', 'B', 'C'] -> ('A', 'B'), ('A', 'C'), ('B', 'C')
+    pair_counts = Counter()
+    for class_list in all_class_lists:
+        # Sort the list to ensure ('A', 'B') is the same as ('B', 'A')
+        sorted_classes = sorted(list(set(class_list)))
+        if len(sorted_classes) > 1:
+            pairs = itertools.combinations(sorted_classes, 2)
+            pair_counts.update(pairs)
+
+    # 3. Prepare the data structure for the heatmap.
+    # We need a list of unique labels and a 2D matrix for the values.
+    if not pair_counts:
+        return jsonify({'x': [], 'y': [], 'z': []}) # Handle case with no pairs
+
+    all_involved_classes = sorted(list(set(itertools.chain.from_iterable(pair_counts.keys()))))
+    class_to_idx = {name: i for i, name in enumerate(all_involved_classes)}
+    
+    matrix_size = len(all_involved_classes)
+    heatmap_matrix = [[0] * matrix_size for _ in range(matrix_size)]
+
+    for pair, count in pair_counts.items():
+        idx1 = class_to_idx[pair[0]]
+        idx2 = class_to_idx[pair[1]]
+        heatmap_matrix[idx1][idx2] = count
+        heatmap_matrix[idx2][idx1] = count # The matrix is symmetrical
+
+    chart_data = {
+        'x': all_involved_classes,
+        'y': all_involved_classes,
+        'z': heatmap_matrix
+    }
+
+    return jsonify(chart_data)

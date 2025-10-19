@@ -3,140 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <title>Event Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        html, body {
-            margin: 0; padding: 0; width: 100%; overflow-x: hidden;
+    /* --- General Setup --- */
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        background-color: #f0f2f5; /* A light grey background */
+    }
+
+    /* --- Dashboard Title --- */
+    .dashboard-header {
+        text-align: center;
+        padding: 2rem 1rem;
+        background-color: #ffffff;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    /* --- Main Grid Container --- */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr; /* Default to a single column */
+        gap: 2rem; /* Space between charts */
+        padding: 2rem;
+        max-width: 1600px;
+        margin: 0 auto; /* Center the grid */
+    }
+
+    /* --- Chart Styling --- */
+    .chart-container {
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        padding: 1.5rem;
+        height: 500px;
+    }
+
+    /* --- Responsive Design using a Media Query --- */
+    /* When the screen is 1024px wide or more... */
+    @media (min-width: 1024px) {
+        .dashboard-grid {
+            /* Switch to a 2-column grid */
+            grid-template-columns: 1fr 1fr;
         }
-        body { 
-            font-family: sans-serif; 
+        /* Make the heatmap span both columns if it's the last chart */
+        .chart-container:last-child:nth-child(odd) {
+            grid-column: 1 / -1;
         }
-        .dashboard-container {
-            display: flex;
-            flex-direction: row;      /* Arrange items horizontally */
-            justify-content: center;  /* Center the items with space around them */
-            align-items: center;      /* Vertically align them in the middle */
-            width: 100%;
-            gap: 20px;                /* Add a nice gap between the charts */
-        }
-        .chart-container {
-            width: 45%;               /* <-- Each chart takes up less than half the space */
-            max-width: 700px;
-            height: 450px;            /* Use a fixed height for consistency */
-        }
-        .dashboard-container h2 {
-            text-align: center;
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
+    <div class="dashboard-header">
+        <h1>Project Dashboard</h1>
+    </div>
 
-    <div class="dashboard-container">
+    <div class="dashboard-grid">
+        <div class="chart-container">
+            <h2>Class Distribution</h2>
+            <div id="classDistributionChart" style="width:100%; height:90%;"></div>
+        </div>
+
+        <div class="chart-container">
+            <h2>Events Over Time</h2>
+            <div id="detectionsOverTimeChart" style="width:100%; height:90%;"></div>
+        </div>
         
         <div class="chart-container">
-            <h2>Detected Class Distribution</h2>
-            <canvas id="classDistributionChart"></canvas>
+            <h2>Class Co-occurrence</h2>
+            <div id="cooccurrenceHeatmap" style="width:100%; height:90%;"></div>
         </div>
-
-        <div class="chart-container">
-            <h2>Detections Over Time</h2>
-            <canvas id="detectionsOverTimeChart"></canvas>
-        </div>
-
     </div>
 
     <script>
-        // This is the JavaScript part that runs in the browser.
-        
-        // 3. We use an async function to fetch data from our backend.
-        //    'async' and 'await' are modern JavaScript features that make
-        //    it easier to handle operations that take time, like getting data
-        //    from a server.
+        // --- Pie Chart ---
         async function createClassDistributionChart() {
-            // 4. Fetch the data from the endpoint we created in Flask.
             const response = await fetch('/api/class_distribution');
-            const data = await response.json(); // Convert the JSON response into a JavaScript object.
-
-            // 5. Get a reference to our <canvas> element from the HTML above.
-            const ctx = document.getElementById('classDistributionChart').getContext('2d');
-
-            // 6. Create the new chart!
-            new Chart(ctx, {
-                type: 'pie', // We specify the chart type.
-                data: {
-                    labels: data.labels, // The labels (e.g., "Deer") come from our API.
-                    datasets: [{
-                        label: '# of Detections',
-                        data: data.values, // The values (e.g., 15) also come from our API.
-                        backgroundColor: [ // Add some nice default colors
-                            'rgba(255, 99, 132, 0.8)',
-                            'rgba(54, 162, 235, 0.8)',
-                            'rgba(255, 206, 86, 0.8)',
-                            'rgba(75, 192, 192, 0.8)',
-                            'rgba(153, 102, 255, 0.8)',
-                            'rgba(255, 159, 64, 0.8)'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true, // This makes the chart resize nicely.
-                    maintainAspectRatio: false,
-                    layout: {
-                    padding: {
-                        bottom: 60// Adds 20px of space at the bottom for the labels
-                    }
-                    },
-                    plugins: {
-                    legend: {
-                        position: 'bottom', // Or you can use 'bottom'
-                    }
-                    }
-                }
-            });
+            const apiData = await response.json();
+            const trace = { labels: apiData.labels, values: apiData.values, type: 'pie' };
+            // We removed the title from layout to use the HTML h2 tag
+            const layout = { margin: { t: 20, b: 40, l: 40, r: 40 } };
+            Plotly.newPlot('classDistributionChart', [trace], layout);
         }
 
+        // --- Line Chart ---
         async function createDetectionsOverTimeChart() {
-            // Fetch from our new endpoint
             const response = await fetch('/api/detections_over_time');
-            const data = await response.json();
-            
-            // Get the new canvas element
-            const ctx = document.getElementById('detectionsOverTimeChart').getContext('2d');
-
-            // Create the new chart
-            new Chart(ctx, {
-                type: 'line', // The chart type is 'line'
-                data: {
-                    labels: data.labels, // The dates
-                    datasets: [{
-                        label: 'Events per Day',
-                        data: data.values, // The counts
-                        fill: false,
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true // Make sure the Y-axis starts at 0
-                        }
-                    },
-                    layout: {
-                    padding: {
-                        bottom: 60 // Adds 20px of space at the bottom for the labels
-                    }
-                }
-                },
-            });
+            const apiData = await response.json();
+            const trace = { x: apiData.x, y: apiData.y, type: 'scatter', mode: 'lines+markers' };
+            const layout = { margin: { t: 20, b: 40, l: 40, r: 40 } };
+            Plotly.newPlot('detectionsOverTimeChart', [trace], layout);
+        }
+        
+        // --- Heatmap ---
+        async function createCooccurrenceHeatmap() {
+            const response = await fetch('/api/class_cooccurrence');
+            const apiData = await response.json();
+            const trace = { x: apiData.x, y: apiData.y, z: apiData.z, type: 'heatmap', colorscale: 'Viridis' };
+            const layout = { margin: { t: 20, b: 40, l: 40, r: 40 } };
+            Plotly.newPlot('cooccurrenceHeatmap', [trace], layout);
         }
 
-        // --- 3. CALL BOTH FUNCTIONS WHEN THE PAGE LOADS ---
+        // Call all functions
         createClassDistributionChart();
-        createDetectionsOverTimeChart(); // Add this line        
+        createDetectionsOverTimeChart();
+        createCooccurrenceHeatmap();
     </script>
-
 </body>
 </html>
