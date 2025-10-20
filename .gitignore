@@ -211,3 +211,5 @@ __marimo__/
 *.avi
 
 *.json
+
+.DS_Store
