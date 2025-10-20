@@ -1,5 +1,4 @@
 from dotenv import load_dotenv, find_dotenv
-# this finds and loads your .env file
 load_dotenv(find_dotenv())
 
 from app import create_app

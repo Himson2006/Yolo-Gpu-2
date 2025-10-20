@@ -14,7 +14,7 @@ class Config:
     # PostgreSQL URL from env or default (used in Docker Compose)
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL",
-        "postgresql://himsonchapagain@localhost:5432/yolodb"
+        "postgresql://user@localhost:5432/db"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

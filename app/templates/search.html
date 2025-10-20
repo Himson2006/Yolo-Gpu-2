@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* --- Base & Typography --- */
+        
         :root {
             --bg-color: #f8f9fa;
             --text-color: #212529;
@@ -28,7 +28,6 @@
             line-height: 1.6;
         }
 
-        /* --- Layout --- */
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -42,7 +41,6 @@
             margin-bottom: 2rem;
         }
 
-        /* --- Guide Section --- */
         .guide {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -66,7 +64,6 @@
         }
         .guide li { padding-left: 0.5rem; margin-bottom: 0.5rem; }
 
-        /* --- Form Styling --- */
         .search-form {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -124,7 +121,6 @@
             background-color: var(--primary-hover);
         }
 
-        /* --- Results Section --- */
         .results-info {
             text-align: center;
             font-style: italic;
@@ -213,7 +209,7 @@
         }
 
         .video-description {
-            display: none; /* Hidden by default */
+            display: none;
             padding: 1rem 1.5rem;
             background-color: var(--bg-color);
             border-top: 1px solid var(--border-color);
@@ -272,7 +268,7 @@
             color: #495057;
         }
         .delete-button {
-            background-color: #dc3545; /* Red for delete */
+            background-color: #dc3545;
             color: white;
             border: none;
             padding: 0.5rem 1rem;
@@ -280,7 +276,6 @@
             cursor: pointer;
             font-weight: 500;
             transition: background-color 0.2s;
-            /* REMOVE THIS LINE: margin-left: 0.5rem; */
         }
         .delete-button:hover {
             background-color: #c82333;
@@ -289,16 +284,14 @@
             display: flex;
             flex-wrap: wrap;
             align-items: flex-end;
-            gap: 0.5rem; /* This creates space between all items */
+            gap: 0.5rem; 
         }
         .behavior-form-grid .form-group {
             margin-bottom: 0;
         }
-        /* Make the time input fields a small, fixed width */
         .behavior-form-grid input[type="number"] {
             width: 75px; 
         }
-        /* Make the description field a larger, but still fixed, width */
         .behavior-form-grid input[type="text"] {
             width: 220px;
         }
@@ -384,7 +377,7 @@
                 <li><strong>Date Range:</strong> Specify a start and end date to filter videos by when they were recorded.</li>
                 <li><strong>Device ID:</strong> Filter by the device that recorded the video</li>
                 <li><strong>Time of Day:</strong> Choose "Day" (6am - 6pm) or "Night" (6pm - 6am) to filter videos by the time they were recorded.</li>
-                <li><strong>Min Confidence:</strong> Filter videos by the minimum confidence level of</li>
+                <li><strong>Min Confidence:</strong> Filter videos by the minimum confidence level</li>
             </ul>
         </div>
 
@@ -627,7 +620,6 @@
             const eventIds = Array.from(videoItems).map(item => item.dataset.id);
             const downloadUrl = `/download/batch?ids=${eventIds.join(',')}`;
 
-            // Trigger the download by navigating to the new URL
             window.location.href = downloadUrl;
             }
 
@@ -637,7 +629,6 @@
             const currentButton = event.target;
             const isOpening = currentContainer.style.display === 'none' || !currentContainer.style.display;
 
-            // 1. Stop all other playing videos by destroying their iframes
             document.querySelectorAll('.video-player-container').forEach(container => {
                 if (container.id !== currentContainer.id && container.style.display === 'block') {
                     container.style.display = 'none';
@@ -653,9 +644,7 @@
                 }
             });
 
-            // 2. Toggle the state of the clicked video
             if (isOpening) {
-                // Create a brand new iframe
                 const playerUrl = currentButton.dataset.playerUrl;
                 const iframe = document.createElement('iframe');
                 iframe.setAttribute('id', `iframe-${id}`);
@@ -663,15 +652,12 @@
                 iframe.setAttribute('allow', 'autoplay; encrypted-media');
                 iframe.setAttribute('allowfullscreen', '');
 
-                // Add the new iframe to the container
                 currentContainer.innerHTML = ''; 
                 currentContainer.appendChild(iframe);
 
-                // Show the container and update the button
                 currentContainer.style.display = 'block';
                 currentButton.textContent = '■ Stop';
             } else {
-                // Hide the container and destroy its content
                 currentContainer.style.display = 'none';
                 currentContainer.innerHTML = '';
                 currentButton.textContent = '▶ Play';
@@ -697,7 +683,6 @@
             .then(data => {
                 if (data.success) {
                     alert('Classes updated successfully!');
-                    // Update the class list in the UI without a full reload
                     const classListElement = document.querySelector(`[data-id="class-list-${id}"]`);
                     if (classListElement) {
                         const updatedHtml = `<strong>Detected Classes:</strong> ${data.updated_classes.join(', ')} <span style="font-style: italic; color: #6c757d;">(edited)</span>`;
@@ -724,7 +709,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Find the parent <li> element and remove it from the DOM
                     const videoItem = button.closest('.video-item');
                     if (videoItem) {
                         videoItem.remove();
@@ -764,8 +748,7 @@
             .then(data => {
                 if (data.success) {
                     alert('Behavior added successfully!');
-                    
-                    // Dynamically add the new behavior to the list
+                
                     const behaviorList = document.getElementById(`behavior-list-${id}`);
                     const newListItem = document.createElement('li');
                     const b = data.behavior;
@@ -774,11 +757,9 @@
                     if (behaviorList) {
                         behaviorList.appendChild(newListItem);
                     } else {
-                        // If the list doesn't exist, reload to show the new section
                         window.location.reload();
                     }
 
-                    // Clear input fields
                     startTimeInput.value = '';
                     endTimeInput.value = '';
                     descriptionSelect.selectedIndex = 0;
@@ -838,7 +819,6 @@
                 if ( this.value === '__add_new__') {
                     document.getElementById(`addNewBehaviorSection-${eventId}`).style.display = 'block';
                 } else {
-                // If they select any other option, make sure the section stays hidden.
                 document.getElementById(`addNewBehaviorSection-${eventId}`).style.display = 'none';
                 }
             })

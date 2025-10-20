@@ -25,9 +25,8 @@ COPY . .
 RUN mkdir -p app/uploads/incoming \
  && mkdir -p app/uploads/detections
 
-# 7. Expose Flask port
+# 7. Expose Flask portxq
 EXPOSE 5000
 
 # 8. Entrypoint: run the watcher in background, then launch Gunicorn
-#    (all runtime env vars—DATABASE_URL, WATCH_FOLDER, etc.—come from docker-compose)
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "run:app", "--workers", "2", "--threads", "4"]

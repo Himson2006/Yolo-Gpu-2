@@ -45,7 +45,7 @@ def search_videos():
 
     q = Event.query.join(Detection)
 
-    # --- Step 3: Conditionally apply filters ONLY if criteria are provided ---
+    # --- Conditionally apply filters ONLY if criteria are provided ---
     if class_name_str:
         class_names_original = [name.strip() for name in class_name_str.split(',') if name.strip()]
         class_names_lower = [name.lower() for name in class_names_original]
@@ -83,7 +83,7 @@ def search_videos():
     if min_confidence is not None:
         q = q.filter(Detection.detection_json['event_summary']['max_confidence'].as_float() >= min_confidence)
 
-    # --- Step 4: Apply sorting to the final query ---
+    # --- Apply sorting to the final query ---
     if sort_by == 'oldest':
         q = q.order_by(Event.timestamp_start_utc.asc())
     elif sort_by == 'longest':
@@ -105,11 +105,7 @@ def search_videos():
     available_classes_query = db.session.query(Event.primary_species).distinct().order_by(Event.primary_species)
     available_classes = [item[0] for item in available_classes_query.all()]
 
-    # --- Step 6: Render the template ---
-    # The template will now correctly handle all cases:
-    # 1. Initial Load: search_performed=False, events=[] -> Shows "Please enter criteria"
-    # 2. Empty Search: search_performed=True, events=[all] -> Shows all results
-    # 3. No Results:   search_performed=True, events=[] -> Shows "No videos were found"
+    # --- Render the template ---
     return render_template("search.html", events=events, class_name=class_name_str, pagination=pagination,
                            min_duration=min_duration, start_date=start_date_str,end_date=end_date_str,
                            device_id=device_id,time_of_day=time_of_day,min_confidence=min_confidence,sort_by=sort_by,
@@ -184,7 +180,7 @@ def add_behavior(event_id: str):
         db.session.add(new_behavior)
         db.session.commit()
         
-        ## --- START: New logic for saving to JSON file ---
+        ##  saving to JSON file ---
         
         json_filename = f"{event_id}.json"
         
@@ -321,7 +317,7 @@ def delete_video(event_id: str):
     if not event:
         return jsonify({"success": False, "error": "Event not found"}), 404
 
-    # 1. Delete the video file
+    # Delete the video file
     try:
         video_path = os.path.join(current_app.config["WATCH_FOLDER"], f"{event.event_id}.mp4")
         if os.path.exists(video_path):
@@ -330,7 +326,7 @@ def delete_video(event_id: str):
         # Log the error but proceed to delete the DB record anyway
         current_app.logger.error(f"Error deleting video file {video_path}: {e}")
 
-    # 2. Delete the database record (cascades to detections)
+    # Delete the database record (cascades to detections)
     try:
         db.session.delete(event)
         db.session.commit()
@@ -437,7 +433,7 @@ def class_cooccurrence_data():
     Provides data for the class co-occurrence heatmap.
     This is a more complex data processing task done in Python.
     """
-    # 1. Fetch all class lists from the database.
+    # Fetch all class lists from the database.
     # We only care about events where there's more than one class detected.
     query = db.session.query(
         func.coalesce(Detection.classes_modified, Detection.classes_detected)
@@ -450,7 +446,7 @@ def class_cooccurrence_data():
     # query result is a list of lists, e.g., [['Deer', 'Squirrel'], ['Car', 'Person', 'Dog']]
     all_class_lists = [row[0] for row in query]
 
-    # 2. Count all pairs.
+    # Count all pairs.
     # For each list, find all unique combinations of 2 classes.
     # e.g., ['A', 'B', 'C'] -> ('A', 'B'), ('A', 'C'), ('B', 'C')
     pair_counts = Counter()
@@ -461,7 +457,7 @@ def class_cooccurrence_data():
             pairs = itertools.combinations(sorted_classes, 2)
             pair_counts.update(pairs)
 
-    # 3. Prepare the data structure for the heatmap.
+    # Prepare the data structure for the heatmap.
     # We need a list of unique labels and a 2D matrix for the values.
     if not pair_counts:
         return jsonify({'x': [], 'y': [], 'z': []}) # Handle case with no pairs
